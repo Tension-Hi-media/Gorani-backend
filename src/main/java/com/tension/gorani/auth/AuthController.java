@@ -1,12 +1,16 @@
 package com.tension.gorani.auth;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tension.gorani.auth.handler.JwtTokenProvider;
 import com.tension.gorani.config.ResponseMessage;
 import com.tension.gorani.users.domain.entity.Users;
 import com.tension.gorani.users.repository.UsersRepository;
+import com.tension.gorani.users.service.UserService;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,8 +23,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -31,6 +38,7 @@ public class AuthController {
     private JwtTokenProvider jwtTokenProvider;
 
     private final UsersRepository usersRepository;
+    private final UserService userService; // UserService 주입
 
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String clientId;
@@ -50,6 +58,12 @@ public class AuthController {
     @Value("${url.kakao.access-token}")
     private String kakaoAccessTokenUrl;
 
+    @Value("${spring.security.oauth2.client.registration.naver.client-id}")
+    private String naverClientId;
+    @Value("${spring.security.oauth2.client.registration.naver.client-secret}")
+    private String naverClientSecret;
+    @Value("${spring.security.oauth2.client.registration.naver.redirect-uri}")
+    private String naverRedirectUri;
 
     @GetMapping("/auth/google/callback")
     public ResponseEntity<?> googleCallback(@RequestParam("code") String code) {
@@ -190,5 +204,135 @@ public class AuthController {
         }
     }
 
+    @GetMapping("/auth/naver/callback")
+    public void naverCallback(@RequestParam("code") String code,
+                              @RequestParam("state") String state,
+                              HttpServletResponse response) throws IOException {
+        log.info("Received callback request. Code: {}, State: {}", code, state);
+        try {
+            // 1. 액세스 토큰 요청
+            String accessToken = requestNaverAccessToken(code, state);
+            log.info("Access Token: {}", accessToken);
 
+            // 2. 사용자 정보 요청
+            Map<String, String> userInfo = requestNaverUserInfo(accessToken);
+            log.info("User Info: {}", userInfo);
+
+            // 3. 사용자 정보 저장 또는 업데이트
+            String name = userInfo.get("name") != null ? userInfo.get("name") : userInfo.get("nickname");
+            Users user = processNaverUserInfo(
+                    userInfo.get("id"),
+                    userInfo.get("email"),
+                    name
+            );
+
+            // 4. JWT 토큰 생성
+            String token = jwtTokenProvider.generateToken(user);
+            log.info("Generated JWT Token: {}", token);
+
+            // 5. React로 리다이렉트
+            String redirectUrl = "http://localhost:3000/naver-success?token=" + token;
+            log.info("Redirecting to: {}", redirectUrl);
+            response.sendRedirect(redirectUrl);
+        } catch (Exception e) {
+            log.error("Error during Naver callback: {}", e.getMessage());
+            response.sendRedirect("http://localhost:3000/naver-success?error=" + e.getMessage());
+        }
+    }
+
+    // 액세스 토큰 요청
+    private String requestNaverAccessToken(String code, String state) {
+        try {
+            String tokenUrl = "https://nid.naver.com/oauth2.0/token";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+            body.add("grant_type", "authorization_code"); // 고정값
+            body.add("client_id", naverClientId); // 네이버 애플리케이션 Client ID
+            body.add("client_secret", naverClientSecret); // 네이버 애플리케이션 Client Secret
+            body.add("redirect_uri", naverRedirectUri); // 네이버 개발자 센터에 등록된 Redirect URI
+            body.add("code", code); // 네이버 인증 후 전달받은 코드
+            body.add("state", state); // CSRF 방지를 위한 상태값
+
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<String> response = restTemplate.postForEntity(tokenUrl, request, String.class);
+
+            log.info("Naver Access Token Response: {}", response.getBody()); // 응답 로그 출력
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(response.getBody());
+
+            if (jsonNode.has("error")) {
+                throw new RuntimeException("Naver Login Error: " + jsonNode.get("error_description").asText());
+            }
+
+            return jsonNode.get("access_token").asText();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Error parsing Naver access token response", e);
+        }
+    }
+
+    // 사용자 정보 요청
+    private Map<String, String> requestNaverUserInfo(String accessToken) {
+        try {
+            String userInfoUrl = "https://openapi.naver.com/v1/nid/me";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(accessToken);
+
+            HttpEntity<String> request = new HttpEntity<>(headers);
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<String> response = restTemplate.exchange(userInfoUrl, HttpMethod.GET, request, String.class);
+
+            log.info("User Info Response: {}", response.getBody()); // 응답 로그 출력
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(response.getBody());
+
+            if (!jsonNode.has("response")) {
+                throw new RuntimeException("Naver user info not found.");
+            }
+
+            JsonNode responseNode = jsonNode.get("response");
+            log.debug("Received response: {}", response.getBody());
+            Map<String, String> userInfo = new HashMap<>();
+            userInfo.put("id", responseNode.get("id").asText());
+            userInfo.put("email", responseNode.has("email") ? responseNode.get("email").asText() : "unknown@naver.com");
+            userInfo.put("name", responseNode.has("name") ? responseNode.get("name").asText() : "Unknown");
+
+            return userInfo;
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Error parsing user info response", e);
+        }
+    }
+
+    // 사용자 정보 저장 및 처리
+    private Users processNaverUserInfo(String naverId, String email, String name) {
+        try {
+            log.info("Processing Naver user info: naverId={}, email={}, name={}", naverId, email, name);
+            return userService.saveOrUpdateUser(naverId, email, name, "naver");
+        } catch (Exception e) {
+            log.error("사용자 정보 저장 중 오류 발생: {}", e.getMessage());
+            throw new RuntimeException("사용자 정보 저장 중 오류 발생");
+        }
+    }
+
+    @GetMapping("/auth/login/naver")
+    public void naverLogin(HttpServletResponse response, HttpSession session) throws IOException {
+        String state = UUID.randomUUID().toString(); // CSRF 방지를 위한 상태값
+        session.setAttribute("state", state); // 세션에 상태값 저장
+        String redirectUri = URLEncoder.encode("http://localhost:3000/naver-success", "UTF-8");
+        String naverLoginUrl = String.format(
+                "https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=%s&redirect_uri=%s&state=%s",
+                clientId, redirectUri, state
+        );
+
+        log.info("Generated Naver Login URL: {}", naverLoginUrl); // 네이버 로그인 URL 로그 출력
+        response.sendRedirect(naverLoginUrl);
+    }
 }
