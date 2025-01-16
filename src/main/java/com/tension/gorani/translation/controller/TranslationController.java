@@ -24,7 +24,7 @@ public class TranslationController {
 
     private final TranslationService translationService;
 
-    @PostMapping
+    @PostMapping("")
     public ResponseEntity<?> translate(@RequestBody Map<String, String> request) {
         try {
             String text = request.get("text");
