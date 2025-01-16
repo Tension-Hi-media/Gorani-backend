@@ -240,7 +240,6 @@ public class AuthController {
         }
     }
 
-    // 액세스 토큰 요청
     private String requestNaverAccessToken(String code, String state) {
         try {
             String tokenUrl = "https://nid.naver.com/oauth2.0/token";
@@ -249,19 +248,20 @@ public class AuthController {
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-            body.add("grant_type", "authorization_code"); // 고정값
-            body.add("client_id", naverClientId); // 네이버 애플리케이션 Client ID
-            body.add("client_secret", naverClientSecret); // 네이버 애플리케이션 Client Secret
-            body.add("redirect_uri", naverRedirectUri); // 네이버 개발자 센터에 등록된 Redirect URI
-            body.add("code", code); // 네이버 인증 후 전달받은 코드
-            body.add("state", state); // CSRF 방지를 위한 상태값
+            body.add("grant_type", "authorization_code");
+            body.add("client_id", naverClientId);
+            body.add("client_secret", naverClientSecret);
+            body.add("redirect_uri", naverRedirectUri);
+            body.add("code", code);
+            body.add("state", state);
 
             HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
             RestTemplate restTemplate = new RestTemplate();
             ResponseEntity<String> response = restTemplate.postForEntity(tokenUrl, request, String.class);
 
-            log.info("Naver Access Token Response: {}", response.getBody()); // 응답 로그 출력
+            log.info("Response Status Code: {}", response.getStatusCode());
+            log.info("Naver Access Token Response: {}", response.getBody());
 
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode jsonNode = objectMapper.readTree(response.getBody());
@@ -273,6 +273,9 @@ public class AuthController {
             return jsonNode.get("access_token").asText();
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Error parsing Naver access token response", e);
+        } catch (Exception e) {
+            log.error("Error during Naver access token request", e);
+            throw new RuntimeException("Error during Naver access token request", e);
         }
     }
 
