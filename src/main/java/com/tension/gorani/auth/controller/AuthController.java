@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,7 +25,6 @@ import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.Map;
 
-//@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequiredArgsConstructor
 @Slf4j
@@ -75,7 +75,7 @@ public class AuthController {
             body.add("grant_type", "authorization_code");
             body.add("client_id", kakaoClientId);
             body.add("client_secret", kakaoClientSecret);
-            body.add("redirect_uri", "http://localhost:3000"); // 프론트엔드 리디렉션 URI
+            body.add("redirect_uri", "http://localhost:3000/kakao"); // 프론트엔드 리디렉션 URI
             body.add("code", code);
 
             HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
