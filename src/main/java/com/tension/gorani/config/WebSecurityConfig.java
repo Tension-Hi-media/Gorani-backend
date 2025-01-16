@@ -1,5 +1,6 @@
 package com.tension.gorani.config;
 
+import com.tension.gorani.auth.filter.JwtAuthorizationFilter;
 import com.tension.gorani.auth.handler.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
@@ -39,12 +40,12 @@ public class WebSecurityConfig {
                 // CORS 설정
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/", "/login/**","/auth/google/callback","/auth/kakao/callback","/swagger-ui/**","/api/v1/translation").permitAll();
+                    auth.requestMatchers("/", "/login/**","/auth/google/callback","/auth/kakao/callback","/auth/naver/callback","/swagger-ui/**","/api/v1/translation").permitAll();
                     auth.requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll();
                     auth.anyRequest().authenticated();
                 })
                 .oauth2Login(withDefaults())
-//                .addFilterBefore(new JwtAuthorizationFilter(jwtTokenProvider, userDetailsService), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthorizationFilter(jwtTokenProvider, userDetailsService), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
