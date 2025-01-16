@@ -1,8 +1,10 @@
-package com.tension.gorani.auth;
+package com.tension.gorani.auth.controller;
 
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.shaded.gson.JsonObject;
+import com.nimbusds.jose.shaded.gson.JsonParser;
 import com.tension.gorani.auth.handler.JwtTokenProvider;
 import com.tension.gorani.config.ResponseMessage;
 import com.tension.gorani.users.domain.entity.Users;
@@ -22,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.Map;
 
+//@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequiredArgsConstructor
 @Slf4j
@@ -59,72 +62,63 @@ public class AuthController {
 
     @GetMapping("/auth/kakao/callback")
     public ResponseEntity<?> kakaoCallback(@RequestParam("code") String code) {
+        log.info("🦓🦓🦓🦓🦓🦓🦓🦓");
+        try {
+            // 1. 카카오에서 액세스 토큰을 요청
+            String tokenUrl = kakaoAccessTokenUrl;  // 수정: kakaoAccessTokenUrl 사용
+            RestTemplate restTemplate = new RestTemplate();
 
-        log.info("🦓🦓enter");
-        // 1. 카카오에 access token 요청
-        String tokenUrl = kakaoAccessTokenUrl;
-        RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+            body.add("grant_type", "authorization_code");
+            body.add("client_id", kakaoClientId);
+            body.add("client_secret", kakaoClientSecret);
+            body.add("redirect_uri", "http://localhost:3000"); // 프론트엔드 리디렉션 URI
+            body.add("code", code);
 
-        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        body.add("grant_type", "authorization_code");
-        body.add("client_id", kakaoClientId);
-        body.add("client_secret", kakaoClientSecret);
-        body.add("redirect_uri", redirectUri);
-        body.add("code", code);
+            HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
+            ResponseEntity<String> response = restTemplate.exchange(tokenUrl, HttpMethod.POST, requestEntity, String.class);
 
-        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
-        log.info(String.valueOf(requestEntity));
-        ResponseEntity<String> response = restTemplate.exchange(tokenUrl, HttpMethod.POST, requestEntity, String.class);
+            // 2. 액세스 토큰을 추출
+            String accessToken = extractAccessToken(response.getBody());
 
-        // 2. 액세스 토큰 반환
-        String accessToken = extractAccessToken(response.getBody());
-        log.info("accessToken : {}", accessToken);
+            // 3. 카카오 사용자 정보 요청
+            String userInfoUrl = "https://kapi.kakao.com/v2/user/me";
+            HttpHeaders userInfoHeaders = new HttpHeaders();
+            userInfoHeaders.setBearerAuth(accessToken);
+            HttpEntity<String> userInfoRequestEntity = new HttpEntity<>(userInfoHeaders);
+            ResponseEntity<String> userInfoResponse = restTemplate.exchange(userInfoUrl, HttpMethod.GET, userInfoRequestEntity, String.class);
 
+            // 4. 사용자 정보 처리
+            String userInfo = userInfoResponse.getBody();
+            log.info("카카오 사용자 정보: {}", userInfo);
 
-        // 3. 사용자 정보 요청
-        String userInfoUrl = "https://kapi.kakao.com/v2/user/me";
-        HttpHeaders headers2 = new HttpHeaders();
-        headers2.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers2.setBearerAuth(accessToken);
-        HttpEntity<String> requestEntity2 = new HttpEntity<>(headers2);
-        ResponseEntity<String> userInfoResponse = restTemplate.exchange(userInfoUrl, HttpMethod.GET, requestEntity2, String.class);
+            Users users = processKakaoUserInfo(userInfo);
 
-        // 4. 사용자 정보 처리 및 회원가입 로직
-        String userInfo = userInfoResponse.getBody();
-        log.info("userInfo: {}", userInfo);
+            // 5. JWT 토큰 생성
+            String backendAccessToken = jwtTokenProvider.generateToken(users); // 사용자 정보를 기반으로 JWT 생성
 
-        Users users = processKakaoUserInfo(userInfo);
+            Map<String, Object> responseMap = new HashMap<>();
+            responseMap.put("token", backendAccessToken);  // 수정: 결과에 token을 직접 추가
+            responseMap.put("user", users);
 
-        // 5. 백엔드 서버 access token 생성하여 프론트 서버로 전달
-        String backendAccessToken = jwtTokenProvider.generateToken(users); // 사용자 정보를 기반으로 JWT 생성
-
-        Map<String, Object> responseMap = new HashMap<>();
-        responseMap.put("token", backendAccessToken);
-        responseMap.put("user", users);
-
-        log.info("backendAccessToken : {}", backendAccessToken);
-
-        return ResponseEntity
-                .ok()
-                .body(new ResponseMessage(HttpStatus.CREATED, "로그인 성공", responseMap)); // 백엔드 액세스 토큰 반환
+            return ResponseEntity
+                    .ok()
+                    .body(new ResponseMessage(HttpStatus.CREATED, "로그인 성공", responseMap)); // 백엔드 액세스 토큰 반환
+        } catch (Exception e) {
+            log.error("카카오 로그인 처리 오류: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ResponseMessage(HttpStatus.INTERNAL_SERVER_ERROR, "로그인 실패", null));
+        }
     }
+
 
     private String extractAccessToken(String responseBody) {
         // JSON 파싱을 통해 access token 추출
-        try {
-            // Jackson ObjectMapper를 사용하여 JSON 파싱
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode jsonNode = objectMapper.readTree(responseBody);
-
-            // access_token을 추출
-            return jsonNode.get("access_token").asText();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null; // 오류 발생 시 null 반환
-        }
+        JsonObject jsonObject = JsonParser.parseString(responseBody).getAsJsonObject();
+        return jsonObject.get("access_token").getAsString();
     }
 
     private Users processGoogleUserInfo(String userInfo) {
@@ -160,13 +154,12 @@ public class AuthController {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode jsonNode = objectMapper.readTree(userInfo);
 
-            String providerId = jsonNode.get("id").asText(); // Kakao ID를 providerId로 사용
+            // providerId를 임의로 "kakao"로 설정
+            String providerId = "kakao"; // 여기서 providerId를 "kakao"로 설정
             log.info("providerId : {}", providerId);
 
             // kakao_account에서 사용자 이름과 이메일 정보 가져오기
             JsonNode kakaoAccount = jsonNode.get("kakao_account");
-            String name = kakaoAccount.get("name").asText(); // 사용자 이름
-            log.info("name : {}", name);
             String nickName = kakaoAccount.get("profile").get("nickname").asText(); // 사용자 닉네임
             log.info("nickName : {}", nickName);
             String email = kakaoAccount.get("email").asText(); // 이메일
@@ -189,6 +182,7 @@ public class AuthController {
             return null; // 오류 발생 시 null 반환
         }
     }
+
 
 
 }
