@@ -205,39 +205,40 @@ public class AuthController {
     }
 
     @GetMapping("/auth/naver/callback")
-    public void naverCallback(@RequestParam("code") String code,
+    public ResponseEntity<?> naverCallback(@RequestParam("code") String code,
                               @RequestParam("state") String state,
                               HttpServletResponse response) throws IOException {
         log.info("Received callback request. Code: {}, State: {}", code, state);
-        try {
-            // 1. 액세스 토큰 요청
-            String accessToken = requestNaverAccessToken(code, state);
-            log.info("Access Token: {}", accessToken);
 
-            // 2. 사용자 정보 요청
-            Map<String, String> userInfo = requestNaverUserInfo(accessToken);
-            log.info("User Info: {}", userInfo);
+        // 1. 액세스 토큰 요청
+        String accessToken = requestNaverAccessToken(code, state);
+        log.info("Access Token: {}", accessToken);
 
-            // 3. 사용자 정보 저장 또는 업데이트
-            String name = userInfo.get("name") != null ? userInfo.get("name") : userInfo.get("nickname");
-            Users user = processNaverUserInfo(
-                    userInfo.get("id"),
-                    userInfo.get("email"),
-                    name
-            );
+        // 2. 사용자 정보 요청
+        Map<String, String> userInfo = requestNaverUserInfo(accessToken);
+        log.info("User Info: {}", userInfo);
 
-            // 4. JWT 토큰 생성
-            String token = jwtTokenProvider.generateToken(user);
-            log.info("Generated JWT Token: {}", token);
+        // 3. 사용자 정보 저장 또는 업데이트
+        String name = userInfo.get("name") != null ? userInfo.get("name") : userInfo.get("nickname");
+        Users user = processNaverUserInfo(
+                userInfo.get("id"),
+                userInfo.get("email"),
+                name
+        );
 
-            // 5. React로 리다이렉트
-            String redirectUrl = "http://localhost:3000/naver-success?token=" + token;
-            log.info("Redirecting to: {}", redirectUrl);
-            response.sendRedirect(redirectUrl);
-        } catch (Exception e) {
-            log.error("Error during Naver callback: {}", e.getMessage());
-            response.sendRedirect("http://localhost:3000/naver-success?error=" + e.getMessage());
-        }
+        // 4. JWT 토큰 생성
+        String token = jwtTokenProvider.generateToken(user);
+        log.info("Generated JWT Token: {}", token);
+
+        // 5. React로 리다이렉트
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("token", token);
+        responseMap.put("user", user);
+
+        return ResponseEntity
+                .ok()
+                .body(new ResponseMessage(HttpStatus.CREATED, "로그인 성공", responseMap));
+
     }
 
     private String requestNaverAccessToken(String code, String state) {
