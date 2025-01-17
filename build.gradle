@@ -39,21 +39,24 @@ dependencies {
 
 	// JWT (토큰) 라이브러리
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+	implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
+	implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5' // JSON 처리 시 Jackson 사용
+	// JSON 형식으로 응답할 수 있게 해주는 라이브러리implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
-	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5' // JSON 처리를 위한 Jackson
-	// JSON 형식으로 응답할 수 있게 해주는 라이브러리
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5' // JSON 처리
 	implementation group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
 
 	// Spring Boot JDBC로 시작하기
 	implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
 
 	implementation 'org.modelmapper:modelmapper:3.1.1'
+	implementation 'jakarta.xml.bind:jakarta.xml.bind-api:2.3.3'
+	implementation 'org.glassfish.jaxb:jaxb-runtime:2.3.3'
 
 	// swagger
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
 
-	implementation 'javax.xml.bind:jaxb-api:2.3.1'
-	implementation 'org.glassfish.jaxb:jaxb-runtime:2.3.1'
+
 }
 
 tasks.named('test') {
