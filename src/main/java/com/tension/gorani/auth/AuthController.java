@@ -58,6 +58,8 @@ public class AuthController {
     private String kakaoClientSecret;
     @Value("${url.kakao.access-token}")
     private String kakaoAccessTokenUrl;
+    @Value("${spring.security.oauth2.client.registration.kakao.redirect-uri}")
+    private String kakaoRedirectUri;
 
     @Value("${spring.security.oauth2.client.registration.naver.client-id}")
     private String naverClientId;
@@ -88,7 +90,7 @@ public class AuthController {
             body.add("grant_type", "authorization_code");
             body.add("client_id", kakaoClientId);
             body.add("client_secret", kakaoClientSecret);
-            body.add("redirect_uri", "http://localhost:3000/kakaoSuccess");
+            body.add("redirect_uri", kakaoRedirectUri);
             body.add("code", code);
 
             HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
