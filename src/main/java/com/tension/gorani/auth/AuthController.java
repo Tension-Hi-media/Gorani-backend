@@ -69,10 +69,102 @@ public class AuthController {
     private String naverRedirectUri;
 
     @GetMapping("/auth/google/callback")
-    public ResponseEntity<?> googleCallback(@RequestParam("code") String code) {
-        return ResponseEntity.ok(googleCallback(code));
-        // 지금은 그냥 만들어집니다. code 추가하셔서 google client Id 인증 후 만들어주세요.
+    public ResponseEntity<?> googleCallback(@RequestParam("code") String code, @RequestParam("state") String state) {
+        log.info("Google callback received. Code: {}, State: {}", code, state);
+        String accessToken;
+        try {
+            accessToken = requestGoogleAccessToken(code);
+            log.info("Google Access Token: {}", accessToken);
+        } catch (Exception e) {
+            return createErrorResponse("구글 액세스 토큰 요청 실패", HttpStatus.INTERNAL_SERVER_ERROR, e);
+        }
+
+        String userInfo;
+        try {
+            userInfo = requestGoogleUserInfo(accessToken);
+            log.info("Google User Info: {}", userInfo);
+        } catch (Exception e) {
+            return createErrorResponse("구글 사용자 정보 요청 실패", HttpStatus.INTERNAL_SERVER_ERROR, e);
+        }
+
+        Users users;
+        try {
+            users = processGoogleUserInfo(userInfo);
+            if (users == null) {
+                throw new IllegalArgumentException("User processing failed");
+            }
+        } catch (Exception e) {
+            return createErrorResponse("사용자 정보 처리 실패", HttpStatus.INTERNAL_SERVER_ERROR, e);
+        }
+
+        String backendAccessToken = jwtTokenProvider.generateToken(users);
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("token", backendAccessToken);
+        responseMap.put("user", users);
+
+        log.info("Backend Access Token: {}", backendAccessToken);
+
+        return ResponseEntity
+                .ok()
+                .body(new ResponseMessage(HttpStatus.CREATED, "로그인 성공", responseMap));
     }
+
+    private ResponseEntity<ResponseMessage> createErrorResponse(String message, HttpStatus status, Exception e) {
+        log.error("{}: {}", message, e.getMessage(), e);
+        return ResponseEntity.status(status).body(new ResponseMessage(status, message));
+    }
+
+
+    private String requestGoogleAccessToken(String code) {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("grant_type", "authorization_code");
+        body.add("client_id", clientId);
+        body.add("client_secret", clientSecret);
+        body.add("redirect_uri", redirectUri);
+        body.add("code", code);
+
+        log.info("Request to Google Access Token API with redirect_uri: {}", redirectUri);
+        log.info("Request Body: {}", body);
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
+        log.info("Request to Google Access Token API: {}", requestEntity);
+
+        ResponseEntity<String> response = restTemplate.exchange(accessTokenUrl, HttpMethod.POST, requestEntity, String.class);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new RuntimeException("Failed to retrieve Google Access Token");
+        }
+
+        return extractAccessToken(response.getBody());
+    }
+
+    private String requestGoogleUserInfo(String accessToken) {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        HttpEntity<String> requestEntity = new HttpEntity<>(headers);
+        ResponseEntity<String> response;
+
+        try {
+            response = restTemplate.exchange(profileUrl, HttpMethod.GET, requestEntity, String.class);
+            log.info("Google User Info API Response: {}", response.getBody());
+        } catch (Exception e) {
+            log.error("Error calling Google User Info API: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to retrieve Google User Info due to network error.");
+        }
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            log.error("Google User Info API returned non-success status: {}", response.getStatusCode());
+            throw new RuntimeException("Failed to retrieve Google User Info. Response: " + response.getBody());
+        }
+
+        return response.getBody();
+    }
+
 
     @GetMapping("/auth/kakao/callback")
     public ResponseEntity<?> kakaoCallback(@RequestParam("code") String code) {
@@ -177,13 +269,14 @@ public class AuthController {
                 user.setProviderId(providerId);
                 user.setUsername(name);
                 user.setEmail(email);
+                user.setProvider("google");
                 usersRepository.save(user); // 데이터베이스에 저장
             }
             log.info("user 정보 : {}", user);
             return user; // 사용자 반환
         } catch (Exception e) {
-            e.printStackTrace();
-            return null; // 오류 발생 시 null 반환
+            log.error("Failed to process Google user info", e);
+            throw new RuntimeException("Failed to process Google user info", e);
         }
     }
 
