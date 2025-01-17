@@ -4,8 +4,6 @@ package com.tension.gorani.auth;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.shaded.gson.JsonObject;
-import com.nimbusds.jose.shaded.gson.JsonParser;
 import com.tension.gorani.auth.handler.JwtTokenProvider;
 import com.tension.gorani.config.ResponseMessage;
 import com.tension.gorani.users.domain.entity.Users;
@@ -201,10 +199,8 @@ public class AuthController {
             String email = kakaoAccount.path("email").asText("unknown@kakao.com"); // 기본값 설정
             String nickname = kakaoAccount.path("profile").path("nickname").asText("Unknown User");
 
-            // providerId로 사용자 찾기
             Users user = usersRepository.findByProviderId(providerId);
             if (user == null) {
-                // 사용자 정보가 없으면 새로운 사용자 생성
                 user = new Users();
                 user.setProviderId(providerId);
                 user.setUsername(nickname);
@@ -223,8 +219,8 @@ public class AuthController {
 
     @GetMapping("/auth/naver/callback")
     public ResponseEntity<?> naverCallback(@RequestParam("code") String code,
-                              @RequestParam("state") String state,
-                              HttpServletResponse response) throws IOException {
+                                           @RequestParam("state") String state,
+                                           HttpServletResponse response) throws IOException {
         log.info("Received callback request. Code: {}, State: {}", code, state);
 
         // 1. 액세스 토큰 요청
