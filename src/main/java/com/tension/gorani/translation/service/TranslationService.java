@@ -36,7 +36,7 @@ public class TranslationService {
 
             System.out.println("Sending to FastAPI: " + requestBody);
 
-            ResponseEntity<Map> response = restTemplate.postForEntity(fastApiUrl + "/translate", requestEntity, Map.class);
+            ResponseEntity<Map> response = restTemplate.postForEntity(fastApiUrl + "/translate/onlygpt", requestEntity, Map.class);
 
             System.out.println("Response from FastAPI: " + response.getBody());
 
