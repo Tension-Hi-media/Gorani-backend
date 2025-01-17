@@ -229,6 +229,7 @@ public class AuthController {
                 user.setProviderId(providerId);
                 user.setUsername(name);
                 user.setEmail(email);
+                user.setProvider("google");
                 usersRepository.save(user); // 데이터베이스에 저장
             }
             log.info("user 정보 : {}", user);
