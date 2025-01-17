@@ -184,7 +184,7 @@ public class AuthController {
             params.add("client_secret", kakaoClientSecret);
             params.add("redirect_uri", kakaoRedirectUri); // 설정에서 가져온 Redirect URI
             params.add("code", code);
-            params.add("scope", "profile_nickname,account_email");
+//            params.add("scope", "profile_nickname,account_email");
 
             log.info("Requesting access token with params: {}", params);
             HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
@@ -290,13 +290,13 @@ public class AuthController {
             JsonNode kakaoAccount = jsonNode.path("kakao_account");
 
             String email = kakaoAccount.path("email").asText("unknown@kakao.com"); // 기본값 설정
-            String nickname = kakaoAccount.path("profile").path("nickname").asText("Unknown User");
+            String name = kakaoAccount.path("name").asText("Unknown User");
 
             Users user = usersRepository.findByProviderId(providerId);
             if (user == null) {
                 user = new Users();
                 user.setProviderId(providerId);
-                user.setUsername(nickname);
+                user.setUsername(name);
                 user.setEmail(email);
                 user.setProvider("kakao"); // 'kakao'를 provider 필드에 설정
                 usersRepository.save(user); // 데이터베이스 저장
