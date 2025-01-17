@@ -1,6 +1,5 @@
 package com.tension.gorani.auth;
 
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tension.gorani.auth.handler.JwtTokenProvider;
@@ -50,11 +49,97 @@ public class AuthController {
     @Value("${url.kakao.access-token}")
     private String kakaoAccessTokenUrl;
 
-
     @GetMapping("/auth/google/callback")
     public ResponseEntity<?> googleCallback(@RequestParam("code") String code) {
-        return ResponseEntity.ok(googleCallback(code));
-        // 지금은 그냥 만들어집니다. code 추가하셔서 google client Id 인증 후 만들어주세요.
+        log.info("🦓 Google OAuth callback initiated with code: {}", code);
+
+        // 1. Access Token 요청
+        String accessToken;
+        try {
+            accessToken = requestGoogleAccessToken(code);
+            log.info("Google Access Token: {}", accessToken);
+        } catch (Exception e) {
+            log.error("Failed to retrieve Google Access Token: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ResponseMessage(HttpStatus.INTERNAL_SERVER_ERROR, "구글 액세스 토큰 요청 실패"));
+        }
+
+        // 2. 사용자 정보 요청
+        String userInfo;
+        try {
+            userInfo = requestGoogleUserInfo(accessToken);
+            log.info("Google User Info: {}", userInfo);
+        } catch (Exception e) {
+            log.error("Failed to retrieve Google User Info: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ResponseMessage(HttpStatus.INTERNAL_SERVER_ERROR, "구글 사용자 정보 요청 실패"));
+        }
+
+        // 3. 사용자 정보 처리
+        Users users;
+        try {
+            users = processGoogleUserInfo(userInfo);
+            if (users == null) {
+                throw new IllegalArgumentException("User processing failed");
+            }
+        } catch (Exception e) {
+            log.error("Failed to process Google User Info: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ResponseMessage(HttpStatus.INTERNAL_SERVER_ERROR, "사용자 정보 처리 실패"));
+        }
+
+        // 4. 백엔드 서버 Access Token 생성
+        String backendAccessToken = jwtTokenProvider.generateToken(users);
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("token", backendAccessToken);
+        responseMap.put("user", users);
+
+        log.info("Backend Access Token: {}", backendAccessToken);
+
+        return ResponseEntity
+                .ok()
+                .body(new ResponseMessage(HttpStatus.CREATED, "로그인 성공", responseMap));
+    }
+
+    private String requestGoogleAccessToken(String code) {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("grant_type", "authorization_code");
+        body.add("client_id", clientId);
+        body.add("client_secret", clientSecret);
+        body.add("redirect_uri", redirectUri);
+        body.add("code", code);
+
+        log.info("Request to Google Access Token API with redirect_uri: {}", redirectUri);
+        log.info("Request Body: {}", body);
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
+        log.info("Request to Google Access Token API: {}", requestEntity);
+
+        ResponseEntity<String> response = restTemplate.exchange(accessTokenUrl, HttpMethod.POST, requestEntity, String.class);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new RuntimeException("Failed to retrieve Google Access Token");
+        }
+
+        return extractAccessToken(response.getBody());
+    }
+
+    private String requestGoogleUserInfo(String accessToken) {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        HttpEntity<String> requestEntity = new HttpEntity<>(headers);
+
+        ResponseEntity<String> response = restTemplate.exchange(profileUrl, HttpMethod.GET, requestEntity, String.class);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new RuntimeException("Failed to retrieve Google User Info");
+        }
+
+        return response.getBody();
     }
 
     @GetMapping("/auth/kakao/callback")
@@ -149,11 +234,10 @@ public class AuthController {
             log.info("user 정보 : {}", user);
             return user; // 사용자 반환
         } catch (Exception e) {
-            e.printStackTrace();
-            return null; // 오류 발생 시 null 반환
+            log.error("Failed to process Google user info", e);
+            throw new RuntimeException("Failed to process Google user info", e);
         }
     }
-
 
     private Users processKakaoUserInfo(String userInfo) {
         try {
