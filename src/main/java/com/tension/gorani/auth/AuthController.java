@@ -1,6 +1,5 @@
 package com.tension.gorani.auth;
 
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,7 +19,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -75,11 +73,12 @@ public class AuthController {
     }
 
     @GetMapping("/auth/kakao/callback")
-    public ResponseEntity<?> kakaoCallback(@RequestParam("code") String code) {
+    public ResponseEntity<?> kakaoCallback(@RequestParam("code") String code,
+                                           HttpServletResponse response) throws IOException {
         log.info("🦓🦓🦓🦓🦓🦓🦓🦓");
         try {
             // 1. 카카오에서 액세스 토큰을 요청
-            String tokenUrl = kakaoAccessTokenUrl;  // 수정: kakaoAccessTokenUrl 사용
+            String tokenUrl = kakaoAccessTokenUrl;
             RestTemplate restTemplate = new RestTemplate();
 
             HttpHeaders headers = new HttpHeaders();
@@ -89,14 +88,15 @@ public class AuthController {
             body.add("grant_type", "authorization_code");
             body.add("client_id", kakaoClientId);
             body.add("client_secret", kakaoClientSecret);
-            body.add("redirect_uri", "http://localhost:3000/kakao"); // 프론트엔드 리디렉션 URI
+            body.add("redirect_uri", "http://localhost:3000/kakaoSuccess");
             body.add("code", code);
 
             HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
-            ResponseEntity<String> response = restTemplate.exchange(tokenUrl, HttpMethod.POST, requestEntity, String.class);
+            ResponseEntity<String> tokenResponse = restTemplate.exchange(tokenUrl, HttpMethod.POST, requestEntity, String.class);
 
             // 2. 액세스 토큰을 추출
-            String accessToken = extractAccessToken(response.getBody());
+            String accessToken = extractAccessToken(tokenResponse.getBody());
+            log.info("액세스 토큰: {}", accessToken);
 
             // 3. 카카오 사용자 정보 요청
             String userInfoUrl = "https://kapi.kakao.com/v2/user/me";
@@ -112,10 +112,10 @@ public class AuthController {
             Users users = processKakaoUserInfo(userInfo);
 
             // 5. JWT 토큰 생성
-            String backendAccessToken = jwtTokenProvider.generateToken(users); // 사용자 정보를 기반으로 JWT 생성
+            String backendAccessToken = jwtTokenProvider.generateToken(users);
 
             Map<String, Object> responseMap = new HashMap<>();
-            responseMap.put("token", backendAccessToken);  // 수정: 결과에 token을 직접 추가
+            responseMap.put("token", backendAccessToken);
             responseMap.put("user", users);
 
             return ResponseEntity
@@ -127,6 +127,7 @@ public class AuthController {
                     .body(new ResponseMessage(HttpStatus.INTERNAL_SERVER_ERROR, "로그인 실패", null));
         }
     }
+
 
 
     private String extractAccessToken(String responseBody) {
@@ -169,7 +170,10 @@ public class AuthController {
             JsonNode jsonNode = objectMapper.readTree(userInfo);
 
             // providerId를 임의로 "kakao"로 설정
-            String providerId = "kakao"; // 여기서 providerId를 "kakao"로 설정
+            String provider = "kakao"; // 여기서 providerId를 "kakao"로 설정
+            log.info("provider : {}", provider);
+
+            String providerId = jsonNode.get("id").asText(); //  ID
             log.info("providerId : {}", providerId);
 
             // kakao_account에서 사용자 이름과 이메일 정보 가져오기
@@ -185,6 +189,7 @@ public class AuthController {
                 // 사용자 정보가 없으면 새로운 사용자 생성
                 user = new Users();
                 user.setProviderId(providerId);
+                user.setProvider(provider);
                 user.setUsername(nickName);
                 user.setEmail(email);
                 usersRepository.save(user); // 데이터베이스에 저장
