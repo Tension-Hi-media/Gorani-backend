@@ -24,8 +24,8 @@ public class Users {
     @Column(nullable = false, length = 50)
     private String username;  // 유저 이름
 
-    @Column(nullable = true, unique = true, length = 100)
-    private String email;  // 이메일 (nullable=true 변경)
+    @Column(nullable = false, length = 100)
+    private String email;  // 이메일
 
     @Column(nullable = false, length = 20)
     private String provider;  // 소셜 제공자
@@ -47,5 +47,6 @@ public class Users {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;  // 수정일
+
 
 }
