@@ -42,9 +42,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
                 "/v3/api-docs/(.*)",         //swagger 설정
                 "/swagger-resources",        //swagger 설정
                 "/swagger-resources/(.*)",    //swagger 설정
-                "/auth/google/callback",
-                "/auth/kakao/callback",
-                "/auth/naver/callback"
+                "/auth/callback"
         );
 
         // 예외 URL 처리

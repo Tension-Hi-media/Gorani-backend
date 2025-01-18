@@ -7,6 +7,7 @@ import com.tension.gorani.users.domain.entity.Users;
 import com.tension.gorani.users.repository.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -23,46 +24,73 @@ public class AuthService {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UsersRepository usersRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    public Map<String, Object> handleGoogleCallback(String token) throws Exception {
-        String userInfoEndpoint = "https://www.googleapis.com/oauth2/v3/userinfo";
+    @Value("${spring.security.oauth2.client.registration.google.client-id}")
+    private String googleClientId;
+    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
+    private String googleClientSecret;
+    @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
+    private String googleRedirectUri;
+    @Value("${url.google.access-token}")
+    private String googleAccessTokenUrl;
+    @Value("${url.google.profile}")
+    private String googleProfileUrl;
 
-        // 사용자 정보 요청
-        Map<String, Object> userInfo = restTemplate.getForObject(
-                userInfoEndpoint + "?access_token=" + token, Map.class
-        );
+    @Value("${spring.security.oauth2.client.registration.kakao.client-id}")
+    private String kakaoClientId;
+    @Value("${spring.security.oauth2.client.registration.kakao.client-secret}")
+    private String kakaoClientSecret;
+    @Value("${url.kakao.access-token}")
+    private String kakaoAccessTokenUrl;
+    @Value("${spring.security.oauth2.client.registration.kakao.redirect-uri}")
+    private String kakaoRedirectUri;
 
-        if (userInfo == null || userInfo.isEmpty()) {
-            throw new Exception("Google 사용자 정보를 가져올 수 없습니다.");
+    @Value("${spring.security.oauth2.client.registration.naver.client-id}")
+    private String naverClientId;
+    @Value("${spring.security.oauth2.client.registration.naver.client-secret}")
+    private String naverClientSecret;
+    @Value("${spring.security.oauth2.client.registration.naver.redirect-uri}")
+    private String naverRedirectUri;
+
+    public Map<String, Object> handleOAuthCallback(String code, String provider) throws Exception {
+        String tokenUrl;
+        String userInfoUrl;
+        String clientId;
+        String clientSecret;
+        String redirectUri;
+
+        switch (provider.toLowerCase()) {
+            case "google":
+                tokenUrl = googleAccessTokenUrl;
+                userInfoUrl = googleProfileUrl;
+                clientId = googleClientId;
+                clientSecret = googleClientSecret;
+                redirectUri = googleRedirectUri;
+                break;
+            case "kakao":
+                tokenUrl = kakaoAccessTokenUrl;
+                userInfoUrl = "https://kapi.kakao.com/v2/user/me";
+                clientId = kakaoClientId;
+                clientSecret = kakaoClientSecret;
+                redirectUri = kakaoRedirectUri;
+                break;
+            case "naver":
+                tokenUrl = "https://nid.naver.com/oauth2.0/token";
+                userInfoUrl = "https://openapi.naver.com/v1/nid/me";
+                clientId = naverClientId;
+                clientSecret = naverClientSecret;
+                redirectUri = naverRedirectUri;
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported provider: " + provider);
         }
 
-        return userInfo; // 사용자 정보를 반환
-    }
-    public Map<String, Object> handleKakaoCallback(String code) throws Exception {
-        return handleOAuthCallback(
-                code,
-                "https://kauth.kakao.com/oauth/token",
-                "https://kapi.kakao.com/v2/user/me",
-                System.getenv("KAKAO_CLIENT_ID"),
-                System.getenv("KAKAO_CLIENT_SECRET"),
-                System.getenv("KAKAO_REDIRECT_URI")
-        );
-    }
-
-    private Map<String, Object> handleOAuthCallback(String code, String tokenUrl, String userInfoUrl,
-                                                    String clientId, String clientSecret, String redirectUri) throws Exception {
-        String accessToken = getAccessToken(code, clientId, clientSecret, redirectUri, tokenUrl);
-        String userInfo = getUserInfo(accessToken, userInfoUrl);
-
-        Users user = processUserInfo(userInfo, userInfoUrl.contains("kakao"));
-        String backendAccessToken = jwtTokenProvider.generateToken(user);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("token", backendAccessToken);
-        response.put("user", user);
-        return response;
+        String accessToken;
+        accessToken = getAccessToken(code, clientId, clientSecret, redirectUri, tokenUrl);
+        Map<String, Object> userInfo = getUserInfo(accessToken, userInfoUrl);
+        return processUserInfo(userInfo, provider);
     }
 
     private String getAccessToken(String code, String clientId, String clientSecret, String redirectUri, String tokenUrl) {
@@ -78,55 +106,87 @@ public class AuthService {
 
         HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
         ResponseEntity<String> response = restTemplate.exchange(tokenUrl, HttpMethod.POST, requestEntity, String.class);
-
+        log.info("accessToken: {}", response.getBody());
         return extractAccessToken(response.getBody());
     }
 
-    private String getUserInfo(String accessToken, String userInfoUrl) {
+    private Map<String, Object> getUserInfo(String accessToken, String userInfoUrl) throws Exception {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
 
         HttpEntity<String> requestEntity = new HttpEntity<>(headers);
         ResponseEntity<String> response = restTemplate.exchange(userInfoUrl, HttpMethod.GET, requestEntity, String.class);
-
-        return response.getBody();
+        log.info("userInfo: {}", response.getBody());
+        return parseUserInfo(response.getBody());
     }
 
-    private String extractAccessToken(String responseBody) {
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode jsonNode = objectMapper.readTree(responseBody);
-            return jsonNode.get("access_token").asText();
-        } catch (Exception e) {
-            log.error("Access token 추출 실패: {}", e.getMessage());
-            throw new RuntimeException("Access token 추출 실패", e);
+    private Map<String, Object> parseUserInfo(String userInfoResponse) throws Exception {
+        JsonNode jsonNode = objectMapper.readTree(userInfoResponse);
+        Map<String, Object> userInfo = new HashMap<>();
+
+        if (jsonNode.has("id")) {
+            userInfo.put("providerId", jsonNode.get("id").asText());
+        } else if (jsonNode.has("sub")) {
+            userInfo.put("providerId", jsonNode.get("sub").asText());
+        } else if (jsonNode.has("response")) {
+            userInfo.put("providerId", jsonNode.get("response").get("id").asText());
         }
+
+        if (jsonNode.has("name")) {
+            userInfo.put("name", jsonNode.get("name").asText());
+        } else if (jsonNode.has("kakao_account")) {
+            userInfo.put("name", jsonNode.get("kakao_account").get("name").asText());
+        } else if (jsonNode.has("response")) {
+            userInfo.put("name", jsonNode.get("response").get("name").asText());
+        }
+
+        if (jsonNode.has("email")) {
+            userInfo.put("email", jsonNode.get("email").asText());
+        } else if (jsonNode.has("kakao_account")) {
+            userInfo.put("email", jsonNode.get("kakao_account").get("email").asText());
+        } else if (jsonNode.has("response")) {
+            userInfo.put("email", jsonNode.get("response").get("email").asText());
+        }
+
+        log.info("userInfo: {}", userInfo);
+
+        return userInfo;
     }
 
-    private Users processUserInfo(String userInfo, boolean isKakao) throws Exception {
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode jsonNode = objectMapper.readTree(userInfo);
+    private Map<String, Object> processUserInfo(Map<String, Object> userInfo, String provider) {
+        String providerId = (String) userInfo.get("providerId");
+        String name = (String) userInfo.get("name");
+        String email = (String) userInfo.get("email");
 
-        String providerId = isKakao ? jsonNode.get("id").asText() : jsonNode.get("sub").asText();
-        String name = isKakao
-                ? jsonNode.get("kakao_account").get("profile").get("nickname").asText()
-                : jsonNode.get("name").asText();
-        String email = isKakao
-                ? jsonNode.get("kakao_account").get("email").asText()
-                : jsonNode.get("email").asText();
+        Users user = saveOrUpdateUser(providerId, name, email, provider);
+        String backendAccessToken = jwtTokenProvider.generateToken(user);
 
-        return saveOrUpdateUser(providerId, name, email);
+        Map<String, Object> response = new HashMap<>();
+        response.put("token", backendAccessToken);
+        response.put("user", user);
+        return response;
     }
 
-    private Users saveOrUpdateUser(String providerId, String name, String email) {
+    private Users saveOrUpdateUser(String providerId, String name, String email, String provider) {
         Users user = usersRepository.findByProviderId(providerId);
         if (user == null) {
             user = new Users();
             user.setProviderId(providerId);
             user.setUsername(name);
             user.setEmail(email);
+            user.setProvider(provider);
             usersRepository.save(user);
         }
         return user;
+    }
+
+    private String extractAccessToken(String responseBody) {
+        try {
+            JsonNode jsonNode = objectMapper.readTree(responseBody);
+            return jsonNode.get("access_token").asText();
+        } catch (Exception e) {
+            log.error("Access token 추출 실패: {}", e.getMessage());
+            throw new RuntimeException("Access token 추출 실패", e);
+        }
     }
 }
