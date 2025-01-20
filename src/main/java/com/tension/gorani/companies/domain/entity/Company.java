@@ -32,6 +32,9 @@ public class Company {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();  // 수정일
 
+    @Column(name = "representative_name")
+    private String representativeName;  // 수정일
+
     @OneToMany(mappedBy = "company")
     private Set<Users> users = new LinkedHashSet<>();
 
