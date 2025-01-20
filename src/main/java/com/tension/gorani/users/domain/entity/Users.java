@@ -48,5 +48,4 @@ public class Users {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;  // 수정일
 
-
 }

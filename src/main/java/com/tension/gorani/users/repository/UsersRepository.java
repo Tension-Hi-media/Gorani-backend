@@ -9,4 +9,5 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
 
     Users findByProviderId(String providerId);
 
+
 }

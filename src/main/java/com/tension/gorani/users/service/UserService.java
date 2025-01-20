@@ -33,4 +33,9 @@ public class UserService {
         }
         return user;
     }
+
+    public Users findById(Long id) {
+        return usersRepository.findById(id).orElse(null);
+    }
+
 }
