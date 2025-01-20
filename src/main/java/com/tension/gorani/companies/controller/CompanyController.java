@@ -1,5 +1,6 @@
 package com.tension.gorani.companies.controller;
 
+import com.tension.gorani.companies.domain.dto.CreateCompanyDTO;
 import com.tension.gorani.companies.domain.entity.Company;
 import com.tension.gorani.companies.service.CompanyService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,9 +24,9 @@ public class CompanyController {
     // Create
     @Operation(summary = "기업 생성", description = "새로운 기업 정보를 생성합니다.")
     @PostMapping
-    public ResponseEntity<Company> createCompany(@RequestBody Company company) {
-        log.info("Creating company: {}", company.getName()); // 로그 나중에 삭제
-        Company createdCompany = companyService.createCompany(company);
+    public ResponseEntity<Company> createCompany(@RequestBody CreateCompanyDTO createCompanyDTO) {
+        log.info("Creating company: {}", createCompanyDTO); // 로그 나중에 삭제
+        Company createdCompany = companyService.createCompany(createCompanyDTO);
         return ResponseEntity.ok(createdCompany);
     }
 

@@ -1,5 +1,7 @@
 package com.tension.gorani.users.controller;
 
+import com.tension.gorani.common.ResponseMessage;
+import com.tension.gorani.users.domain.dto.UpdateCompanyResponse;
 import com.tension.gorani.auth.handler.JwtTokenProvider;
 import com.tension.gorani.users.domain.entity.Users;
 import com.tension.gorani.users.service.UserService;
@@ -12,6 +14,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Tag(name = "user")
 @RestController
 @RequiredArgsConstructor
@@ -20,7 +25,6 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
-    private final JwtTokenProvider jwtTokenProvider; // JwtTokenProvider 주입
 
     @PostMapping("/save-or-update")
     public ResponseEntity<Users> saveOrUpdateUser(@RequestParam String providerId,
@@ -44,4 +48,18 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
+
+    @PostMapping("/updateCompany")
+    public ResponseEntity<ResponseMessage> updateCompany(@RequestParam Long userId,
+                                                  @RequestParam Long companyId) {
+        log.info("API call to save or update user: userId={}, companyId={}", userId, companyId);
+        Users user = userService.updateUserWithCompany(userId, companyId);
+
+        Map<String, Object> responseMap = new HashMap<>();
+
+        responseMap.put("user", user);
+
+        return ResponseEntity.ok()
+                .body(new ResponseMessage(HttpStatus.OK,"기업 등록 성공",responseMap));
+    }
 }
