@@ -1,5 +1,7 @@
 package com.tension.gorani.users.service;
 
+import com.tension.gorani.companies.domain.entity.Company;
+import com.tension.gorani.companies.repository.CompanyRepository;
 import com.tension.gorani.users.domain.entity.Users;
 import com.tension.gorani.users.repository.UsersRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UsersRepository usersRepository;
+    private final CompanyRepository companyRepository;
 
     @Transactional
     public Users saveOrUpdateUser(String providerId, String email, String username, String provider) {
@@ -32,5 +35,12 @@ public class UserService {
             log.info("Existing user found: {}", user);
         }
         return user;
+    }
+
+    public Users updateUserWithCompany(Long userId, Long companyId) {
+        Users foundUser = usersRepository.findById(userId).get();
+        Company foundCompany = companyRepository.findById(companyId).get();
+        foundUser.setCompany(foundCompany);
+        return usersRepository.save(foundUser);
     }
 }
