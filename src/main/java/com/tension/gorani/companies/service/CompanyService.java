@@ -26,6 +26,7 @@ public class CompanyService {
                 .createdAt(createCompanyDTO.getCreatedAt())
                 .updatedAt(createCompanyDTO.getUpdatedAt())
                 .registrationNumber(createCompanyDTO.getRegistrationNumber())
+                .representativeName(createCompanyDTO.getRepresentativeName())
                 .build();
         return companyRepository.save(company);
     }

@@ -14,6 +14,7 @@ public class CreateCompanyDTO {
 
     private String name;  // 기업 이름
     private String registrationNumber;  // 사업자 등록번호
+    private String representativeName;
     private LocalDateTime createdAt = LocalDateTime.now();  // 생성일
     private LocalDateTime updatedAt = LocalDateTime.now();  // 수정일
 

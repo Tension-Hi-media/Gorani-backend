@@ -1,8 +1,10 @@
 package com.tension.gorani.companies.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.tension.gorani.users.domain.entity.Users;
 import jakarta.persistence.*;
 import lombok.*;
+import net.minidev.json.annotate.JsonIgnore;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
@@ -35,6 +37,7 @@ public class Company {
     @Column(name = "representative_name")
     private String representativeName;  // 수정일
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "company")
     private Set<Users> users = new LinkedHashSet<>();
 
