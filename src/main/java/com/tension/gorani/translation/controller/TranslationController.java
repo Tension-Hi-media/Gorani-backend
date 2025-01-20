@@ -1,17 +1,16 @@
 package com.tension.gorani.translation.controller;
 
+import com.tension.gorani.translation.DTO.GlossaryRequest;
 import com.tension.gorani.translation.service.TranslationService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 
@@ -47,4 +46,40 @@ public class TranslationController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Translation failed: " + e.getMessage());
         }
     }
+
+    @Operation(summary = "용어집 저장", description = "새로운 용어집을 저장합니다.")
+    @PostMapping("/glossary")
+    public ResponseEntity<GlossaryRequest> saveGlossary(@RequestBody GlossaryRequest glossaryRequest) {
+        try {
+            // 로그로 확인
+            log.info("Saving glossary: {}", glossaryRequest);
+
+            // 예: MySQL로부터 userId를 읽어와야 한다면,
+            // glossaryRequest.setUserId(어딘가에서 읽어온 값);
+            // 이런 식으로 강제로 설정도 가능.
+
+            // 현재 구조대로라면, FastAPI에 glossaryRequest를 그대로 전달
+            translationService.saveGlossary(glossaryRequest);
+
+            // glossaryRequest를 그대로 응답
+            return ResponseEntity.ok(glossaryRequest);
+        } catch (Exception e) {
+            log.error("Failed to save glossary", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+
+    @GetMapping("/glossary")
+    public ResponseEntity<?> getGlossaries(@RequestParam int userId) {
+        try {
+            // userId로 필터링된 용어집 목록을 FastAPI 또는 DB에서 조회
+            List<Map<String, Object>> glossaries = translationService.fetchUserGlossaries(userId);
+            return ResponseEntity.ok(glossaries);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("용어집 조회 실패: " + e.getMessage());
+        }
+    }
+
 }
