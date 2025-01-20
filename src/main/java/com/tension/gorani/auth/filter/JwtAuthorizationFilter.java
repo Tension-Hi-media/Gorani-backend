@@ -63,10 +63,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             Users users = Users.builder()
                     .id(Long.parseLong(claims.get("id").toString()))
                     .username(claims.get("username").toString())
-                    .email(claims.get("email").toString())
-                    .provider(claims.get("provider").toString())
-                    .providerId(claims.get("provider_id").toString())
-                    .isActive(Boolean.parseBoolean(claims.get("is_active").toString()))
+                    .email(claims.get("sub").toString())
                     .build();
 
             // 토큰에 담겨 있던 사용자 정보를 기반으로 CustomUserDetails 객체 생성
