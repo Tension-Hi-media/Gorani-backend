@@ -10,8 +10,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 @Tag(name = "Translation")
@@ -69,7 +71,6 @@ public class TranslationController {
         }
     }
 
-
     @GetMapping("/glossary")
     public ResponseEntity<?> getGlossaries(@RequestParam int userId) {
         try {
@@ -79,6 +80,81 @@ public class TranslationController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("용어집 조회 실패: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "용어집 삭제", description = "특정 용어집을 삭제합니다.")
+    @DeleteMapping("/glossary/{id}")
+    public ResponseEntity<?> deleteGlossary(@PathVariable String id) {
+        try {
+            translationService.deleteGlossary(id);
+            return ResponseEntity.ok(Map.of("message", "Glossary deleted successfully"));
+        } catch (Exception e) {
+            log.error("Failed to delete glossary", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete glossary: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "단어쌍 추가", description = "특정 용어집에 단어쌍을 추가합니다.")
+    @PostMapping("/glossary/{id}/word-pair")
+    public ResponseEntity<?> addWordPair(@PathVariable String id, @RequestBody GlossaryRequest.WordPair wordPair) {
+        try {
+            translationService.addWordPair(id, wordPair);
+            return ResponseEntity.ok(Map.of("message", "Word pair added successfully"));
+        } catch (Exception e) {
+            log.error("Failed to add word pair", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add word pair: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "단어쌍 수정", description = "특정 용어집의 단어쌍을 수정합니다.")
+    @PutMapping("/glossary/{glossaryId}/word-pair/{wordPairId}")
+    public ResponseEntity<?> updateWordPair(
+            @PathVariable String glossaryId,
+            @PathVariable String wordPairId,
+            @RequestBody GlossaryRequest.WordPair updatedWordPair) {
+        try {
+            log.info("Updating word pair: glossaryId={}, wordPairId={}, updatedWordPair={}", glossaryId, wordPairId, updatedWordPair);
+
+            translationService.updateWordPair(glossaryId, wordPairId, updatedWordPair);
+            return ResponseEntity.ok(Map.of("message", "Word pair updated successfully"));
+        } catch (Exception e) {
+            log.error("Failed to update word pair", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update word pair: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "단어쌍 삭제", description = "특정 용어집에서 단어쌍을 삭제합니다.")
+    @DeleteMapping("/glossary/{id}/word-pair/{index}")
+    public ResponseEntity<?> deleteWordPair(@PathVariable String id, @PathVariable int index) {
+        try {
+            translationService.deleteWordPair(id, index);
+            return ResponseEntity.ok(Map.of("message", "Word pair deleted successfully"));
+        } catch (Exception e) {
+            log.error("Failed to delete word pair", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete word pair: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "단어쌍 조회", description = "특정 용어집의 모든 단어쌍을 조회합니다.")
+    @GetMapping("/glossary/{id}/word-pair")
+    public ResponseEntity<?> getWordPairs(@PathVariable String id) {
+        try {
+            List<GlossaryRequest.WordPair> wordPairs = translationService.getWordPairs(id);
+
+            // `_id`를 `id`로 변환
+            List<Map<String, Object>> processedPairs = wordPairs.stream().map(pair -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id", pair.getId()); // `_id`를 `id`로 매핑
+                map.put("start", pair.getStart());
+                map.put("arrival", pair.getArrival());
+                return map;
+            }).collect(Collectors.toList());
+            log.info("Processed word pairs: {}", processedPairs);
+            return ResponseEntity.ok(processedPairs);
+        } catch (Exception e) {
+            log.error("Failed to fetch word pairs for glossaryId {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching word pairs: " + e.getMessage());
         }
     }
 
