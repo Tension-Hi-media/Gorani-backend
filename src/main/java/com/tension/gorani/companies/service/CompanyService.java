@@ -3,9 +3,7 @@ package com.tension.gorani.companies.service;
 import com.tension.gorani.companies.domain.dto.CreateCompanyDTO;
 import com.tension.gorani.companies.domain.entity.Company;
 import com.tension.gorani.companies.repository.CompanyRepository;
-import com.tension.gorani.users.domain.entity.Users;
 import com.tension.gorani.users.repository.UsersRepository;
-import com.tension.gorani.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,6 +17,7 @@ import java.util.Optional;
 public class CompanyService {
     private final CompanyRepository companyRepository;
     private final UsersRepository usersRepository;
+
     // Create
     public Company createCompany(CreateCompanyDTO createCompanyDTO) {
         Company company = Company.builder()

@@ -1,17 +1,15 @@
 package com.tension.gorani.users.controller;
 
+import com.tension.gorani.auth.service.CustomUserDetails;
 import com.tension.gorani.common.ResponseMessage;
-import com.tension.gorani.users.domain.dto.UpdateCompanyResponse;
-import com.tension.gorani.auth.handler.JwtTokenProvider;
 import com.tension.gorani.users.domain.entity.Users;
 import com.tension.gorani.users.service.UserService;
-import io.jsonwebtoken.Claims;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -36,19 +34,6 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-    @GetMapping("/me")
-    public ResponseEntity<Users> getCurrentUser(HttpServletRequest request) {
-        String token = jwtTokenProvider.resolveToken(request);
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            Claims claims = jwtTokenProvider.getClaimsFromToken(token);
-            Long userId = claims.get("id", Long.class);
-            Users user = userService.findById(userId); // 사용자 ID로 사용자 정보 조회
-            return ResponseEntity.ok(user);
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-    }
-
-
     @PostMapping("/updateCompany")
     public ResponseEntity<ResponseMessage> updateCompany(@RequestParam Long userId,
                                                   @RequestParam Long companyId) {
@@ -61,5 +46,38 @@ public class UserController {
 
         return ResponseEntity.ok()
                 .body(new ResponseMessage(HttpStatus.OK,"기업 등록 성공",responseMap));
+    }
+
+    @GetMapping("/mypage")
+    public ResponseEntity<Map<String, Object>> getUserInfo(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        log.info("Fetching user info for user: {}", customUserDetails.getUsername());
+        
+        Users user = customUserDetails.getUsers(); // CustomUserDetails에서 사용자 정보 가져오기
+        log.info("Retrieved user: {}", user); // 사용자 객체 로깅
+        
+        if (user == null) {
+            log.warn("User object is null");
+            return ResponseEntity.notFound().build();
+        }
+
+        log.info("User email: {}, username: {}", user.getEmail(), user.getUsername()); // 구체적인 필드 값 로깅
+
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("email", user.getEmail());
+        responseMap.put("name", user.getUsername());
+        
+        // 기업 정보 추가
+        if (user.getCompany() != null) {
+            responseMap.put("companyName", user.getCompany().getName());
+            responseMap.put("registrationNumber", user.getCompany().getRegistrationNumber());
+            responseMap.put("representativeName", user.getCompany().getRepresentativeName());
+        } else {
+            responseMap.put("companyName", null);
+            responseMap.put("registrationNumber", null);
+            responseMap.put("representativeName", null);
+        }
+
+        log.info("Response map: {}", responseMap); // 최종 응답 데이터 로깅
+        return ResponseEntity.ok(responseMap);
     }
 }
