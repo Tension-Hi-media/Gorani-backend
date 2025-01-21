@@ -159,6 +159,7 @@ public class AuthService {
         String email = (String) userInfo.get("email");
 
         Users user = saveOrUpdateUser(providerId, name, email, provider);
+
         String backendAccessToken = jwtTokenProvider.generateToken(user);
 
         Map<String, Object> response = new HashMap<>();
