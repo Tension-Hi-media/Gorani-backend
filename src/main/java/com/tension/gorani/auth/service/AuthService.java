@@ -3,10 +3,12 @@ package com.tension.gorani.auth.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tension.gorani.auth.handler.JwtTokenProvider;
+import com.tension.gorani.companies.domain.entity.Company;
 import com.tension.gorani.users.domain.entity.Users;
 import com.tension.gorani.users.repository.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -159,6 +161,7 @@ public class AuthService {
         String email = (String) userInfo.get("email");
 
         Users user = saveOrUpdateUser(providerId, name, email, provider);
+
         String backendAccessToken = jwtTokenProvider.generateToken(user);
 
         Map<String, Object> response = new HashMap<>();

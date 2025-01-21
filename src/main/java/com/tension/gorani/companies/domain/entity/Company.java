@@ -1,5 +1,6 @@
 package com.tension.gorani.companies.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.tension.gorani.users.domain.entity.Users;
 import jakarta.persistence.*;
@@ -37,7 +38,7 @@ public class Company {
     @Column(name = "representative_name")
     private String representativeName;  // 수정일
 
-    @JsonManagedReference
+    @JsonBackReference
     @OneToMany(mappedBy = "company")
     private Set<Users> users = new LinkedHashSet<>();
 
