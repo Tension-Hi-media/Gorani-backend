@@ -65,6 +65,21 @@ public class CustomUserDetails implements UserDetails {
         return users; // Users 객체 반환
     }
 
+    // CustomUserDetails에서 회사 정보 반환 메서드 개선
+    public String getCompanyName() {
+        return users.getCompany() != null ? users.getCompany().getName() : "입력되지않음";
+    }
 
+    public String getCompanyRepresentative() {
+        return users.getCompany() != null ? users.getCompany().getRepresentativeName() : "입력되지않음";
+    }
+
+    public String getCompanyRegistrationNumber() {
+        return users.getCompany() != null ? users.getCompany().getRegistrationNumber() : "입력되지않음";
+    }
+
+    public Long getCompanyId() {
+        return users.getCompany() != null ? users.getCompany().getCompanyId() : null;
+    }
 
 }

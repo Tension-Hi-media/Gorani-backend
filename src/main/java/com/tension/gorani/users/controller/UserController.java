@@ -52,15 +52,11 @@ public class UserController {
     public ResponseEntity<Map<String, Object>> getUserInfo(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
         log.info("Fetching user info for user: {}", customUserDetails.getUsername());
         
-        Users user = customUserDetails.getUsers(); // CustomUserDetails에서 사용자 정보 가져오기
-        log.info("Retrieved user: {}", user); // 사용자 객체 로깅
+        Users user = customUserDetails.getUserInfo();
         
         if (user == null) {
-            log.warn("User object is null");
             return ResponseEntity.notFound().build();
         }
-
-        log.info("User email: {}, username: {}", user.getEmail(), user.getUsername()); // 구체적인 필드 값 로깅
 
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("email", user.getEmail());
@@ -68,16 +64,21 @@ public class UserController {
         
         // 기업 정보 추가
         if (user.getCompany() != null) {
+            responseMap.put("companyId", user.getCompany().getCompanyId());
             responseMap.put("companyName", user.getCompany().getName());
             responseMap.put("registrationNumber", user.getCompany().getRegistrationNumber());
             responseMap.put("representativeName", user.getCompany().getRepresentativeName());
         } else {
-            responseMap.put("companyName", null);
-            responseMap.put("registrationNumber", null);
-            responseMap.put("representativeName", null);
+            // 회사 정보가 없을 경우 기본값 설정
+            responseMap.put("companyId", null);
+            responseMap.put("companyName", "입력되지 않음");
+            responseMap.put("registrationNumber", "입력되지 않음");
+            responseMap.put("representativeName", "입력되지 않음");
         }
 
-        log.info("Response map: {}", responseMap); // 최종 응답 데이터 로깅
+        // 응답 전에 로그 추가
+        log.info("Response map: {}", responseMap);
         return ResponseEntity.ok(responseMap);
     }
+
 }
