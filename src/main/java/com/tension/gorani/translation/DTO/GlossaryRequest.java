@@ -13,6 +13,7 @@ public class GlossaryRequest {
     private String name; // 용어집 이름
     private Long userId; // 사용자 ID
     private List<WordPair> words; // 단어쌍 리스트
+    private Boolean isDefault; // 기본 용어집 여부 추가
 
 
     // Getter & Setter
@@ -46,6 +47,14 @@ public class GlossaryRequest {
 
     public void setWords(List<WordPair> words) {
         this.words = words;
+    }
+
+    public Boolean getIsDefault() {
+        return isDefault;
+    }
+
+    public void setIsDefault(Boolean isDefault) {
+        this.isDefault = isDefault;
     }
 
     // Inner class for WordPair
