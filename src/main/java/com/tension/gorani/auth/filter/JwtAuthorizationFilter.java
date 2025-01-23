@@ -50,11 +50,8 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-
         // 헤더에서 토큰 꺼내기
         String token = jwtTokenProvider.resolveToken(request); // 요청에서 JWT 토큰 추출
-        log.info("추출한 토큰: {}", token);
-
         // 토큰 유효성 검사
         if (token != null && jwtTokenProvider.validateToken(token)) {
             Claims claims = jwtTokenProvider.getClaimsFromToken(token); // JWT에서 사용자 고유 넘버 추출
