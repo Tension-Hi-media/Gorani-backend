@@ -50,11 +50,8 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-
         // 헤더에서 토큰 꺼내기
         String token = jwtTokenProvider.resolveToken(request); // 요청에서 JWT 토큰 추출
-        log.info("추출한 토큰: {}", token);
-
         // 토큰 유효성 검사
         if (token != null && jwtTokenProvider.validateToken(token)) {
             Claims claims = jwtTokenProvider.getClaimsFromToken(token); // JWT에서 사용자 고유 넘버 추출
@@ -63,10 +60,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             Users users = Users.builder()
                     .id(Long.parseLong(claims.get("id").toString()))
                     .username(claims.get("username").toString())
-                    .email(claims.get("email").toString())
-                    .provider(claims.get("provider").toString())
-                    .providerId(claims.get("provider_id").toString())
-                    .isActive(Boolean.parseBoolean(claims.get("is_active").toString()))
+                    .email(claims.get("sub").toString())
                     .build();
 
             // 토큰에 담겨 있던 사용자 정보를 기반으로 CustomUserDetails 객체 생성

@@ -26,24 +26,23 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // 회원의 권한을 GrantedAuthority 로 변환
+        // 사용자 권한을 반환합니다. 여기서는 ROLE_USER로 설정합니다.
         return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
-    // oAuth를 통해 로그인하므로 패스워드는 없기 때문에 null로 반환했다.
     @Override
     public String getPassword() {
-        return null;
+        return null; // OAuth를 통해 로그인하므로 패스워드는 필요 없습니다.
     }
 
     @Override
     public String getUsername() {
-        return users.getUsername();
+        return users.getUsername(); // 사용자 이름 반환
     }
 
     @Override
     public boolean isAccountNonExpired() {
-        return true; // 계정 만료 여부를 직접 관리하고 싶다면
+        return true; // 계정 만료 여부
     }
 
     @Override
@@ -58,6 +57,29 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true; // 활성화 여부
+        return true; // 계정 활성화 여부
     }
+
+    // 사용자 정보를 반환하는 메서드 추가
+    public Users getUserInfo() {
+        return users; // Users 객체 반환
+    }
+
+    // CustomUserDetails에서 회사 정보 반환 메서드 개선
+    public String getCompanyName() {
+        return users.getCompany() != null ? users.getCompany().getName() : "입력되지않음";
+    }
+
+    public String getCompanyRepresentative() {
+        return users.getCompany() != null ? users.getCompany().getRepresentativeName() : "입력되지않음";
+    }
+
+    public String getCompanyRegistrationNumber() {
+        return users.getCompany() != null ? users.getCompany().getRegistrationNumber() : "입력되지않음";
+    }
+
+    public Long getCompanyId() {
+        return users.getCompany() != null ? users.getCompany().getCompanyId() : null;
+    }
+
 }

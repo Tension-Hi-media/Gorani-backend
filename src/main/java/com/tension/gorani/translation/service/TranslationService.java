@@ -24,9 +24,9 @@ public class TranslationService {
     public String translateText(String text, String sourceLang, String targetLang) {
         try {
             Map<String, String> requestBody = Map.of(
-                "text", text,
-                "source_lang", sourceLang,
-                "target_lang", targetLang
+                    "text", text,
+                    "source_lang", sourceLang,
+                    "target_lang", targetLang
             );
 
             HttpHeaders headers = new HttpHeaders();

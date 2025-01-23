@@ -1,5 +1,6 @@
 package com.tension.gorani.users.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.tension.gorani.companies.domain.entity.Company;
 import jakarta.persistence.*;
 import lombok.*;
@@ -33,7 +34,8 @@ public class Users {
     @Column(name = "provider_id", nullable = false, unique = true)
     private String providerId;  // 소셜 제공자의 유저 고유 ID
 
-    @ManyToOne
+    @JsonManagedReference
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "company_id")
     private Company company;  // 소속 기업
 

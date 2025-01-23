@@ -19,19 +19,28 @@ public class JwtTokenProvider {
     private long expirationTime;
 
     // JWT 토큰 생성
-    public String generateToken(Users users) {
-        Claims claims = Jwts.claims().setSubject(users.getEmail()); // 사용자 이메일을 주제로 설정
-        claims.put("username", users.getUsername()); // 토큰에 사용자 이름 넣기
-        claims.put("id", users.getId());
+    public String generateToken(Users user) {
+        Claims claims = Jwts.claims().setSubject(user.getEmail());
+        claims.put("username", user.getUsername());
+        claims.put("id", user.getId());
+        claims.put("email", user.getEmail());
+        claims.put("provider", user.getProvider());
+        claims.put("provider_id", user.getProviderId());
+        claims.put("is_active", user.getIsActive());
+        
+        if (user.getCompany() != null) {
+            claims.put("company_id", user.getCompany().getCompanyId());
+            claims.put("company_name", user.getCompany().getName());
+        }
 
         Date now = new Date();
-        Date validity = new Date(now.getTime() + expirationTime); // 만료 시간 설정
+        Date expiryDate = new Date(now.getTime() + expirationTime);
 
         return Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(now)
-                .setExpiration(validity)
-                .signWith(SignatureAlgorithm.HS256, secretKey) // 비밀 키로 서명
+                .setExpiration(expiryDate)
+                .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
 
