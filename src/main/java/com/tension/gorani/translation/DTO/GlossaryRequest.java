@@ -15,7 +15,6 @@ public class GlossaryRequest {
     private List<WordPair> words; // 단어쌍 리스트
     private Boolean isDefault; // 기본 용어집 여부 추가
 
-
     // Getter & Setter
     public String getId() {
         return id;
