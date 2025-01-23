@@ -26,11 +26,7 @@ import java.util.stream.Collectors;
 public class GlossaryController {
 
     private final GlossaryService glossaryService;
-    @Data
-    public class SetDefaultGlossaryRequest {
-        private String glossaryId;
-    }
-
+    
     // [1] 용어집 생성
     @Operation(summary = "용어집 저장", description = "새로운 용어집을 저장합니다.")
     @PostMapping
