@@ -3,7 +3,10 @@ package com.tension.gorani.translation.controller;
 import com.tension.gorani.translation.DTO.GlossaryRequest;
 import com.tension.gorani.translation.service.GlossaryService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -88,7 +91,6 @@ public class GlossaryController {
         }
     }
 
-    // [5] 용어집 기본 설정
     @Operation(summary = "기본 용어집 설정", description = "특정 사용자의 기본 용어집을 설정합니다.")
     @PutMapping("/{userId}/default")
     public ResponseEntity<?> setDefaultGlossary(
@@ -114,7 +116,7 @@ public class GlossaryController {
         }
     }
 
-    // [6] 단어쌍 추가
+    // [4] 단어쌍 추가
     @Operation(summary = "단어쌍 추가", description = "특정 용어집에 단어쌍을 추가합니다.")
     @PostMapping("/{id}/word-pair")
     public ResponseEntity<?> addWordPair(@PathVariable String id, @RequestBody GlossaryRequest.WordPair wordPair) {
@@ -128,7 +130,7 @@ public class GlossaryController {
         }
     }
 
-    // [7] 단어쌍 수정
+    // [5] 단어쌍 수정
     @Operation(summary = "단어쌍 수정", description = "특정 용어집의 단어쌍을 수정합니다.")
     @PutMapping("/{glossaryId}/word-pair/{wordPairId}")
     public ResponseEntity<?> updateWordPair(
@@ -145,7 +147,7 @@ public class GlossaryController {
         }
     }
 
-    // [8] 단어쌍 삭제
+    // [6] 단어쌍 삭제
     @Operation(summary = "단어쌍 삭제", description = "특정 용어집에서 단어쌍을 삭제합니다.")
     @DeleteMapping("/{id}/word-pair/{index}")
     public ResponseEntity<?> deleteWordPair(@PathVariable String id, @PathVariable int index) {
@@ -159,7 +161,7 @@ public class GlossaryController {
         }
     }
 
-    // [9] 단어쌍 조회
+    // [7] 단어쌍 조회
     @Operation(summary = "단어쌍 조회", description = "특정 용어집의 모든 단어쌍을 조회합니다.")
     @GetMapping("/{id}/word-pair")
     public ResponseEntity<?> getWordPairs(@PathVariable String id) {
