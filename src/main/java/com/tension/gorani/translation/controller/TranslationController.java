@@ -26,16 +26,18 @@ public class TranslationController {
     public ResponseEntity<?> translate(@RequestBody Map<String, String> request) {
         try {
             String text = request.get("text");
-            String sourceLang = request.getOrDefault("sourceLang", "ko"); // Source는 한국어
-            String targetLang = request.getOrDefault("targetLang", "en"); // Target은 영어
+            String sourceLang = request.getOrDefault("sourceLang", "한국어"); // Source는 한국어
+            String targetLang = request.getOrDefault("targetLang", "영어"); // Target은 영어
+            String model = request.getOrDefault("model", "chat-gpt"); // model은 chat-gpt
 
             // 로깅
             System.out.println("Text: " + text);
             System.out.println("Source Language: " + sourceLang);
             System.out.println("Target Language: " + targetLang);
+            System.out.println("Model: " + model);
 
             // FastAPI로 번역 요청
-            String translatedText = translationService.translateText(text, sourceLang, targetLang);
+            String translatedText = translationService.translateText(text, sourceLang, targetLang, model);
 
             System.out.println("Translated Text: " + translatedText);
 

@@ -21,12 +21,13 @@ public class TranslationService {
 
     private final RestTemplate restTemplate;
 
-    public String translateText(String text, String sourceLang, String targetLang) {
+    public String translateText(String text, String sourceLang, String targetLang, String model) {
         try {
             Map<String, String> requestBody = Map.of(
                     "text", text,
                     "source_lang", sourceLang,
-                    "target_lang", targetLang
+                    "target_lang", targetLang,
+                    "model", model
             );
 
             HttpHeaders headers = new HttpHeaders();
@@ -34,11 +35,17 @@ public class TranslationService {
 
             HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
 
-            System.out.println("Sending to FastAPI: " + requestBody);
+            log.info("Sending to FastAPI: {}", requestBody);
 
-            ResponseEntity<Map> response = restTemplate.postForEntity(fastApiUrl + "/translate/onlygpt", requestEntity, Map.class);
+            ResponseEntity<Map> response; // 변수 범위 확장
 
-            System.out.println("Response from FastAPI: " + response.getBody());
+            if (model.equals("llama")) {
+                response = restTemplate.postForEntity(fastApiUrl + "/translate", requestEntity, Map.class);
+            } else {
+                response = restTemplate.postForEntity(fastApiUrl + "/translate/onlygpt", requestEntity, Map.class);
+            }
+
+            log.info("Response from FastAPI: {}", response.getBody());
 
             // FastAPI 응답에서 'answer' 키로 값 가져오기
             if (response.getBody() != null && response.getBody().get("answer") != null) {
@@ -47,8 +54,8 @@ public class TranslationService {
                 throw new RuntimeException("Missing 'answer' key in FastAPI response.");
             }
         } catch (Exception e) {
+            log.error("Error while communicating with FastAPI: {}", e.getMessage(), e);
             throw new RuntimeException("Error while communicating with FastAPI: " + e.getMessage());
         }
     }
-
 }
