@@ -106,7 +106,7 @@ public class AuthService {
 
         HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
         ResponseEntity<String> response = restTemplate.exchange(tokenUrl, HttpMethod.POST, requestEntity, String.class);
-        log.info("accessToken: {}", response.getBody());
+        log.info("Access Token Response: {}", response.getBody());
         return extractAccessToken(response.getBody());
     }
 
@@ -116,7 +116,7 @@ public class AuthService {
 
         HttpEntity<String> requestEntity = new HttpEntity<>(headers);
         ResponseEntity<String> response = restTemplate.exchange(userInfoUrl, HttpMethod.GET, requestEntity, String.class);
-        log.info("userInfo: {}", response.getBody());
+        log.info("User Info Response: {}", response.getBody());
         return parseUserInfo(response.getBody());
     }
 
@@ -169,13 +169,16 @@ public class AuthService {
     }
 
     private Users saveOrUpdateUser(String providerId, String name, String email, String provider) {
-        Users user = usersRepository.findByProviderId(providerId);
+        Users user = usersRepository.findByProviderId(providerId); // 기존 사용자 조회
         if (user == null) {
-            user = new Users();
-            user.setProviderId(providerId);
-            user.setUsername(name);
-            user.setEmail(email);
-            user.setProvider(provider);
+            // 새 사용자 생성 및 저장
+            user = Users.builder()
+                    .providerId(providerId)
+                    .username(name)
+                    .email(email)
+                    .provider(provider)
+                    .isActive(true) // 기본값 설정
+                    .build();
             usersRepository.save(user);
         }
         return user;
