@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class NaverLoginRequest {
+public class OAuthLoginRequest {
     private String code;
     private String state;
 }

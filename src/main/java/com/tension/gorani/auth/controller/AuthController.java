@@ -47,39 +47,27 @@ public class AuthController {
         }
     }
 
-    /*
-     * 기존 GET /naver-success 제거(혹은 주석 처리)
-     * 프론트엔드(React) 콜백 방식을 쓸 경우 필요하지 않습니다.
-     */
-    // @GetMapping("/naver-success")
-    // public ResponseEntity<?> naverCallback(...) { ... }
-
-    /*
-     * 다른 OAuth (구글, 카카오 등)도 동일하게
-     * POST /api/auth/google 등으로 구성해주면 됩니다.
-     */
-
     @PostMapping("/google")
-    public ResponseEntity<?> googleLogin(@RequestBody NaverLoginRequest request) {
+    public ResponseEntity<?> googleLogin(@RequestBody OAuthLoginRequest request) {
+        return handleOAuthLogin(request, "google");
+    }
+
+    private ResponseEntity<?> handleOAuthLogin(OAuthLoginRequest request, String provider) {
         try {
-            log.info("Google Login Request: code={}, state={}", request.getCode(), request.getState());
-            Map<String, Object> result = authService.handleOAuthCallback(request.getCode(), "google");
-            return ResponseEntity.ok(
-                    new ResponseMessage(HttpStatus.CREATED, "로그인 성공", result)
-            );
+            log.info("{} Login Request: code={}, state={}", provider, request.getCode(), request.getState());
+
+            Map<String, Object> result = authService.handleOAuthCallback(request.getCode(), provider);
+
+            return ResponseEntity.ok(new ResponseMessage(HttpStatus.CREATED, "로그인 성공", result));
         } catch (Exception e) {
-            log.error("Google Login Error: {}", e.getMessage());
+            log.error("{} Login Error: {}", provider, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ResponseMessage(
-                            HttpStatus.INTERNAL_SERVER_ERROR,
-                            "구글 로그인 오류",
-                            null
-                    ));
+                    .body(new ResponseMessage(HttpStatus.INTERNAL_SERVER_ERROR, provider + " 로그인 오류", null));
         }
     }
 
     @PostMapping("/kakao")
-    public ResponseEntity<?> kakaoLogin(@RequestBody NaverLoginRequest request) {
+    public ResponseEntity<?> kakaoLogin(@RequestBody OAuthLoginRequest request) {
         try {
             log.info("Kakao Login Request: code={}, state={}", request.getCode(), request.getState());
             Map<String, Object> result = authService.handleOAuthCallback(request.getCode(), "kakao");
@@ -96,4 +84,6 @@ public class AuthController {
                     ));
         }
     }
+
+
 }
