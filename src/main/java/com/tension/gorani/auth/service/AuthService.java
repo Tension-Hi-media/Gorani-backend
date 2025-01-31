@@ -100,7 +100,12 @@ public class AuthService {
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("grant_type", "authorization_code");
         body.add("client_id", clientId);
-        body.add("client_secret", clientSecret);
+
+        // 🔥 카카오는 client_secret 필요 없음
+        if (!tokenUrl.contains("kakao")) {
+            body.add("client_secret", clientSecret);
+        }
+
         body.add("redirect_uri", redirectUri);
         body.add("code", code);
 
@@ -110,12 +115,14 @@ public class AuthService {
         return extractAccessToken(response.getBody());
     }
 
+
     private Map<String, Object> getUserInfo(String accessToken, String userInfoUrl) throws Exception {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
+        headers.setBearerAuth(accessToken); // ✅ Bearer 토큰 추가
 
         HttpEntity<String> requestEntity = new HttpEntity<>(headers);
         ResponseEntity<String> response = restTemplate.exchange(userInfoUrl, HttpMethod.GET, requestEntity, String.class);
+
         log.info("User Info Response: {}", response.getBody());
         return parseUserInfo(response.getBody());
     }
@@ -124,6 +131,7 @@ public class AuthService {
         JsonNode jsonNode = objectMapper.readTree(userInfoResponse);
         Map<String, Object> userInfo = new HashMap<>();
 
+        // ✅ 1. 사용자 ID 가져오기 (providerId)
         if (jsonNode.has("id")) {
             userInfo.put("providerId", jsonNode.get("id").asText());
         } else if (jsonNode.has("sub")) {
@@ -132,23 +140,28 @@ public class AuthService {
             userInfo.put("providerId", jsonNode.get("response").get("id").asText());
         }
 
-        if (jsonNode.has("name")) {
+        // ✅ 2. 사용자 이름 (카카오: profile.nickname)
+        if (jsonNode.has("kakao_account") && jsonNode.get("kakao_account").has("profile")) {
+            JsonNode profile = jsonNode.get("kakao_account").get("profile");
+            if (profile.has("nickname")) {
+                userInfo.put("name", profile.get("nickname").asText()); // ✅ 이름 저장
+            }
+        } else if (jsonNode.has("name")) {
             userInfo.put("name", jsonNode.get("name").asText());
-        } else if (jsonNode.has("kakao_account")) {
-            userInfo.put("name", jsonNode.get("kakao_account").get("name").asText());
         } else if (jsonNode.has("response")) {
             userInfo.put("name", jsonNode.get("response").get("name").asText());
         }
 
-        if (jsonNode.has("email")) {
-            userInfo.put("email", jsonNode.get("email").asText());
-        } else if (jsonNode.has("kakao_account")) {
+        // ✅ 3. 사용자 이메일 (카카오: kakao_account.email)
+        if (jsonNode.has("kakao_account") && jsonNode.get("kakao_account").has("email")) {
             userInfo.put("email", jsonNode.get("kakao_account").get("email").asText());
+        } else if (jsonNode.has("email")) {
+            userInfo.put("email", jsonNode.get("email").asText());
         } else if (jsonNode.has("response")) {
             userInfo.put("email", jsonNode.get("response").get("email").asText());
         }
 
-        log.info("userInfo: {}", userInfo);
+        log.info("Parsed Kakao User Info: {}", userInfo);
 
         return userInfo;
     }

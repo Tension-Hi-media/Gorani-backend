@@ -1,13 +1,16 @@
 package com.tension.gorani.auth.controller;
 
-import com.tension.gorani.auth.dto.NaverLoginRequest;
+import com.tension.gorani.auth.dto.OAuthLoginRequest;
 import com.tension.gorani.auth.service.AuthService;
 import com.tension.gorani.config.ResponseMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
@@ -25,7 +28,7 @@ public class AuthController {
      * Body: { "code": "...", "state": "..." }
      */
     @PostMapping("/naver")
-    public ResponseEntity<?> naverLogin(@RequestBody NaverLoginRequest request) {
+    public ResponseEntity<?> naverLogin(@RequestBody OAuthLoginRequest request) {
         try {
             log.info("Naver Login Request: code={}, state={}", request.getCode(), request.getState());
 
@@ -47,15 +50,43 @@ public class AuthController {
         }
     }
 
-    /*
-     * 기존 GET /naver-success 제거(혹은 주석 처리)
-     * 프론트엔드(React) 콜백 방식을 쓸 경우 필요하지 않습니다.
-     */
-    // @GetMapping("/naver-success")
-    // public ResponseEntity<?> naverCallback(...) { ... }
+    @PostMapping("/google")
+    public ResponseEntity<?> googleLogin(@RequestBody OAuthLoginRequest request) {
+        return handleOAuthLogin(request, "google");
+    }
 
-    /*
-     * 다른 OAuth (구글, 카카오 등)도 동일하게
-     * POST /api/auth/google 등으로 구성해주면 됩니다.
-     */
+    private ResponseEntity<?> handleOAuthLogin(OAuthLoginRequest request, String provider) {
+        try {
+            log.info("{} Login Request: code={}, state={}", provider, request.getCode(), request.getState());
+
+            Map<String, Object> result = authService.handleOAuthCallback(request.getCode(), provider);
+
+            return ResponseEntity.ok(new ResponseMessage(HttpStatus.CREATED, "로그인 성공", result));
+        } catch (Exception e) {
+            log.error("{} Login Error: {}", provider, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ResponseMessage(HttpStatus.INTERNAL_SERVER_ERROR, provider + " 로그인 오류", null));
+        }
+    }
+
+    @PostMapping("/kakao")
+    public ResponseEntity<?> kakaoLogin(@RequestBody OAuthLoginRequest request) {
+        try {
+            log.info("Kakao Login Request: code={}, state={}", request.getCode(), request.getState());
+            Map<String, Object> result = authService.handleOAuthCallback(request.getCode(), "kakao");
+            return ResponseEntity.ok(
+                    new ResponseMessage(HttpStatus.CREATED, "로그인 성공", result)
+            );
+        } catch (Exception e) {
+            log.error("Kakao Login Error: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ResponseMessage(
+                            HttpStatus.INTERNAL_SERVER_ERROR,
+                            "카카오 로그인 오류",
+                            null
+                    ));
+        }
+    }
+
+
 }
