@@ -58,4 +58,42 @@ public class AuthController {
      * 다른 OAuth (구글, 카카오 등)도 동일하게
      * POST /api/auth/google 등으로 구성해주면 됩니다.
      */
+
+    @PostMapping("/google")
+    public ResponseEntity<?> googleLogin(@RequestBody NaverLoginRequest request) {
+        try {
+            log.info("Google Login Request: code={}, state={}", request.getCode(), request.getState());
+            Map<String, Object> result = authService.handleOAuthCallback(request.getCode(), "google");
+            return ResponseEntity.ok(
+                    new ResponseMessage(HttpStatus.CREATED, "로그인 성공", result)
+            );
+        } catch (Exception e) {
+            log.error("Google Login Error: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ResponseMessage(
+                            HttpStatus.INTERNAL_SERVER_ERROR,
+                            "구글 로그인 오류",
+                            null
+                    ));
+        }
+    }
+
+    @PostMapping("/kakao")
+    public ResponseEntity<?> kakaoLogin(@RequestBody NaverLoginRequest request) {
+        try {
+            log.info("Kakao Login Request: code={}, state={}", request.getCode(), request.getState());
+            Map<String, Object> result = authService.handleOAuthCallback(request.getCode(), "kakao");
+            return ResponseEntity.ok(
+                    new ResponseMessage(HttpStatus.CREATED, "로그인 성공", result)
+            );
+        } catch (Exception e) {
+            log.error("Kakao Login Error: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ResponseMessage(
+                            HttpStatus.INTERNAL_SERVER_ERROR,
+                            "카카오 로그인 오류",
+                            null
+                    ));
+        }
+    }
 }
