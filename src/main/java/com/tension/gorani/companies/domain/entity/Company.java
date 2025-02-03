@@ -17,7 +17,7 @@ import java.util.Set;
 @Setter
 @Builder(toBuilder = true)
 @Entity
-@Table(name = "Companies")
+@Table(name = "companies")
 public class Company {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,16 +30,25 @@ public class Company {
     private String registrationNumber;  // 사업자 등록번호
 
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();  // 생성일
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt = LocalDateTime.now();  // 수정일
+    private LocalDateTime updatedAt;
 
     @Column(name = "representative_name")
-    private String representativeName;  // 수정일
+    private String representativeName;    // 대표 이름
 
-    @JsonBackReference
-    @OneToMany(mappedBy = "company")
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Users> users = new LinkedHashSet<>();
 
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
