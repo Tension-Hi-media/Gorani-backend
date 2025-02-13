@@ -28,14 +28,16 @@ public class TranslationController {
             String text = request.get("text");
             String sourceLang = request.getOrDefault("sourceLang", "ko"); // Source는 한국어
             String targetLang = request.getOrDefault("targetLang", "en"); // Target은 영어
+            String model = request.getOrDefault("model", "OpenAI"); // ✅ 모델 값 추가 (기본값 OpenAI)
 
             // 로깅
             System.out.println("Text: " + text);
             System.out.println("Source Language: " + sourceLang);
             System.out.println("Target Language: " + targetLang);
+            System.out.println("Selected Model: " + model);
 
             // FastAPI로 번역 요청
-            String translatedText = translationService.translateText(text, sourceLang, targetLang);
+            String translatedText = translationService.translateText(text, sourceLang, targetLang, model);
 
             System.out.println("Translated Text: " + translatedText);
 
