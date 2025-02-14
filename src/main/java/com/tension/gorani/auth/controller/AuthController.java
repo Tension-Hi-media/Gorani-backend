@@ -1,6 +1,6 @@
 package com.tension.gorani.auth.controller;
 
-import com.tension.gorani.auth.dto.NaverLoginRequest;
+import com.tension.gorani.auth.dto.OAuthLoginRequest;
 import com.tension.gorani.auth.service.AuthService;
 import com.tension.gorani.config.ResponseMessage;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ public class AuthController {
      * Body: { "code": "...", "state": "..." }
      */
     @PostMapping("/naver")
-    public ResponseEntity<?> naverLogin(@RequestBody NaverLoginRequest request) {
+    public ResponseEntity<?> naverLogin(@RequestBody OAuthLoginRequest request) {
         try {
             log.info("Naver Login Request: code={}, state={}", request.getCode(), request.getState());
 
@@ -84,6 +84,4 @@ public class AuthController {
                     ));
         }
     }
-
-
 }

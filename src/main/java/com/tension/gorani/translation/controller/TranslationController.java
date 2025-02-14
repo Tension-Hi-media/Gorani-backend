@@ -17,7 +17,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @Slf4j
-@RequestMapping("/api/v1/translation")
+@RequestMapping("/api/translation")
 public class TranslationController {
 
     private final TranslationService translationService;
