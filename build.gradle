@@ -35,7 +35,6 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-	implementation 'org.springframework.boot:spring-boot-starter-web'
 
 	// JWT (토큰) 라이브러리
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
@@ -44,6 +43,7 @@ dependencies {
 
 	// Spring Boot JDBC로 시작하기
 	implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
+
 	implementation 'org.modelmapper:modelmapper:3.1.1'
 
 	// swagger
@@ -61,4 +61,3 @@ dependencies {
 tasks.named('bootJar') {
 	archiveFileName = 'gorani.jar'  // JAR 파일 이름 설정
 }
-

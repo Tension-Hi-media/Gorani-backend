@@ -95,7 +95,6 @@ public class GlossaryService {
         }
     }
 
-    // Spring에서 FastAPI 응답을 처리하는 부분
 // Spring에서 FastAPI 응답을 처리하는 부분
     public String setDefaultGlossary(String userId, String glossaryId) {
         try {
