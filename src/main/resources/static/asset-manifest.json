@@ -1,0 +1,14 @@
+{
+  "files": {
+    "main.css": "/static/css/main.3cbdcaed.css",
+    "main.js": "/static/js/main.ed6eef31.js",
+    "static/media/SmoochSans-VariableFont_wght.ttf": "/static/media/SmoochSans-VariableFont_wght.3e78a6eb2eeab018bd26.ttf",
+    "index.html": "/index.html",
+    "main.3cbdcaed.css.map": "/static/css/main.3cbdcaed.css.map",
+    "main.ed6eef31.js.map": "/static/js/main.ed6eef31.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.3cbdcaed.css",
+    "static/js/main.ed6eef31.js"
+  ]
+}

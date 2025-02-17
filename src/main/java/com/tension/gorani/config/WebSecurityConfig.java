@@ -37,7 +37,7 @@ public class WebSecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/","/v3/api-docs/**", "/swagger-ui/**", "/login/**", "/auth/callback", "/swagger-ui/**", "/api/v1/translation", "/api/v1/translation/**", "/api/v1/glossary/**").permitAll();
+                    auth.requestMatchers("/", "/index.html", "/static/**", "/v3/api-docs/**", "/swagger-ui/**", "/login/**", "/auth/callback", "/swagger-ui/**", "/api/v1/translation", "/api/v1/translation/**", "/api/v1/glossary/**").permitAll();
                     auth.requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll();
                     auth.anyRequest().authenticated();
                 })
