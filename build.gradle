@@ -44,7 +44,6 @@ dependencies {
 
 	// Spring Boot JDBC로 시작하기
 	implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
-
 	implementation 'org.modelmapper:modelmapper:3.1.1'
 
 	// swagger
@@ -53,8 +52,13 @@ dependencies {
 	// JAXB 의존성
 	implementation 'javax.xml.bind:jaxb-api:2.3.1'
 	implementation 'org.glassfish.jaxb:jaxb-runtime:2.3.1'
+
+	// monitor
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 }
 
-tasks.named('test') {
-	useJUnitPlatform()
+tasks.named('bootJar') {
+	archiveFileName = 'gorani.jar'  // JAR 파일 이름 설정
 }
+
