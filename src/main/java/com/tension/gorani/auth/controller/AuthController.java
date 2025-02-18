@@ -1,6 +1,6 @@
 package com.tension.gorani.auth.controller;
 
-import com.tension.gorani.auth.dto.NaverLoginRequest;
+import com.tension.gorani.auth.dto.OAuthLoginRequest;
 import com.tension.gorani.auth.service.AuthService;
 import com.tension.gorani.config.ResponseMessage;
 import lombok.RequiredArgsConstructor;
@@ -19,13 +19,8 @@ public class AuthController {
 
     private final AuthService authService;
 
-    /**
-     * [방법 A] 프론트엔드에서 code, state를 받아와 POST로 호출
-     * 요청 예: POST /api/auth/naver
-     * Body: { "code": "...", "state": "..." }
-     */
     @PostMapping("/naver")
-    public ResponseEntity<?> naverLogin(@RequestBody NaverLoginRequest request) {
+    public ResponseEntity<?> naverLogin(@RequestBody OAuthLoginRequest request) {
         try {
             log.info("Naver Login Request: code={}, state={}", request.getCode(), request.getState());
 
@@ -84,6 +79,4 @@ public class AuthController {
                     ));
         }
     }
-
-
 }
