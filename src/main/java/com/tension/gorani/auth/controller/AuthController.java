@@ -19,11 +19,6 @@ public class AuthController {
 
     private final AuthService authService;
 
-    /**
-     * [방법 A] 프론트엔드에서 code, state를 받아와 POST로 호출
-     * 요청 예: POST /api/auth/naver
-     * Body: { "code": "...", "state": "..." }
-     */
     @PostMapping("/naver")
     public ResponseEntity<?> naverLogin(@RequestBody OAuthLoginRequest request) {
         try {
