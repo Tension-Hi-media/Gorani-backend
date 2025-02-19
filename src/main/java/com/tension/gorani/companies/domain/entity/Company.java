@@ -1,24 +1,22 @@
 package com.tension.gorani.companies.domain.entity;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.tension.gorani.users.domain.entity.Users;
 import jakarta.persistence.*;
 import lombok.*;
-import net.minidev.json.annotate.JsonIgnore;
 
 import java.time.LocalDateTime;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
-@Builder(toBuilder = true)
+@Builder
 @Entity
 @Table(name = "companies")
 public class Company {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long companyId;  // 기업 고유 ID
@@ -36,19 +34,9 @@ public class Company {
     private LocalDateTime updatedAt;
 
     @Column(name = "representative_name")
-    private String representativeName;    // 대표 이름
+    private String representativeName;  // 대표 이름
 
-    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Users> users = new LinkedHashSet<>();
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference  // ✅ 순환 참조 해결
+    private List<Users> users;  // 소속된 유저 리스트
 }

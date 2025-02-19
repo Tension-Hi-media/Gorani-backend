@@ -3,16 +3,15 @@ package com.tension.gorani.companies.controller;
 import com.tension.gorani.companies.domain.dto.CreateCompanyDTO;
 import com.tension.gorani.companies.domain.entity.Company;
 import com.tension.gorani.companies.service.CompanyService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
-@Tag(name = "Company", description = "기업 정보 관리 API")
 @RestController
 @RequiredArgsConstructor
 @Slf4j
@@ -21,54 +20,38 @@ public class CompanyController {
 
     private final CompanyService companyService;
 
-    // Create
-    @Operation(summary = "기업 생성", description = "새로운 기업 정보를 생성합니다.")
+    // ✅ 기업 정보 저장
     @PostMapping
-    public ResponseEntity<Company> createCompany(@RequestBody CreateCompanyDTO createCompanyDTO) {
-        log.info("Creating company: {}", createCompanyDTO); // 로그 나중에 삭제
-        Company createdCompany = companyService.createCompany(createCompanyDTO);
-        return ResponseEntity.ok(createdCompany);
+    public ResponseEntity<?> createCompany(@RequestBody CreateCompanyDTO createCompanyDTO) {
+        log.info("API call to create a company: {}", createCompanyDTO);
+
+        // 필수 입력값 검증
+        if (createCompanyDTO.getName() == null || createCompanyDTO.getRegistrationNumber() == null || createCompanyDTO.getRepresentativeName() == null) {
+            return ResponseEntity.badRequest().body("기업명, 사업자 등록번호, 대표자명은 필수 입력값입니다.");
+        }
+
+        Company savedCompany = companyService.createCompany(createCompanyDTO);
+        return ResponseEntity.ok(savedCompany);
     }
 
-    // Read - All
-    @Operation(summary = "기업 목록 조회", description = "등록된 모든 기업 정보를 조회합니다.")
+    // ✅ 모든 기업 정보 가져오기
     @GetMapping
     public ResponseEntity<List<Company>> getAllCompanies() {
-        log.info("Fetching all companies"); // 로그 나중에 삭제
         List<Company> companies = companyService.getAllCompanies();
         return ResponseEntity.ok(companies);
     }
 
-    // Read - By ID
-    @Operation(summary = "기업 조회", description = "기업 ID로 특정 기업 정보를 조회합니다.")
+    // ✅ 특정 기업 정보 가져오기 (companyId 기준)
     @GetMapping("/{companyId}")
-    public ResponseEntity<Company> getCompanyById(@PathVariable Long companyId) {
-        log.info("Fetching company with ID: {}", companyId); // 로그 나중에 삭제
-        return companyService.getCompanyById(companyId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
+    public ResponseEntity<?> getCompanyById(@PathVariable Long companyId) {
+        log.info("Fetching company info for ID: {}", companyId);
 
-    // Update
-    @Operation(summary = "기업 수정", description = "기업 ID를 기반으로 기업 정보를 수정합니다.")
-    @PutMapping("/{companyId}")
-    public ResponseEntity<Company> updateCompany(@PathVariable Long companyId, @RequestBody Company updatedCompany) {
-        log.info("Updating company with ID: {}", companyId); // 로그 나중에 삭제
-        try {
-            Company company = companyService.updateCompany(companyId, updatedCompany);
-            return ResponseEntity.ok(company);
-        } catch (IllegalArgumentException e) {
-            log.error("Error updating company with ID: {}", companyId, e); // 로그 나중에 삭제
-            return ResponseEntity.notFound().build();
+        Optional<Company> company = companyService.getCompanyById(companyId);
+
+        if (company.isPresent()) {
+            return ResponseEntity.ok(company.get());
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("해당 기업 정보를 찾을 수 없습니다.");
         }
-    }
-
-    // Delete
-    @Operation(summary = "기업 삭제", description = "기업 ID를 기반으로 기업 정보를 삭제합니다.")
-    @DeleteMapping("/{companyId}")
-    public ResponseEntity<Void> deleteCompany(@PathVariable Long companyId) {
-        log.info("Deleting company with ID: {}", companyId); // 로그 나중에 삭제
-        companyService.deleteCompany(companyId);
-        return ResponseEntity.noContent().build();
     }
 }
