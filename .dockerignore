@@ -1,0 +1,10 @@
+# Git 관련 파일/디렉터리
+.git
+.gitignore
+
+# 환경 변수 파일 (보안상의 이유로 제외)
+.env
+
+# .dockerignore
+node_modules/
+*.log

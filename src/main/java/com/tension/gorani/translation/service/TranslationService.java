@@ -21,12 +21,13 @@ public class TranslationService {
 
     private final RestTemplate restTemplate;
 
-    public String translateText(String text, String sourceLang, String targetLang) {
+    public String translateText(String text, String sourceLang, String targetLang, String model) {
         try {
             Map<String, String> requestBody = Map.of(
                     "text", text,
                     "source_lang", sourceLang,
-                    "target_lang", targetLang
+                    "target_lang", targetLang,
+                    "model", model  // ✅ 선택한 모델 추가
             );
 
             HttpHeaders headers = new HttpHeaders();
