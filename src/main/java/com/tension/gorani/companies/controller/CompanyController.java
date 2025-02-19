@@ -3,16 +3,18 @@ package com.tension.gorani.companies.controller;
 import com.tension.gorani.companies.domain.dto.CreateCompanyDTO;
 import com.tension.gorani.companies.domain.entity.Company;
 import com.tension.gorani.companies.service.CompanyService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import com.tension.gorani.users.domain.entity.Users;
+import com.tension.gorani.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
-@Tag(name = "Company", description = "기업 정보 관리 API")
 @RestController
 @RequiredArgsConstructor
 @Slf4j
@@ -20,55 +22,83 @@ import java.util.List;
 public class CompanyController {
 
     private final CompanyService companyService;
+    private final UserService userService;
 
-    // Create
-    @Operation(summary = "기업 생성", description = "새로운 기업 정보를 생성합니다.")
-    @PostMapping
-    public ResponseEntity<Company> createCompany(@RequestBody CreateCompanyDTO createCompanyDTO) {
-        log.info("Creating company: {}", createCompanyDTO); // 로그 나중에 삭제
-        Company createdCompany = companyService.createCompany(createCompanyDTO);
-        return ResponseEntity.ok(createdCompany);
+    // ✅ 기업 정보 저장
+    @PostMapping("/register")
+    public ResponseEntity<CreateCompanyDTO> createCompany(@RequestBody CreateCompanyDTO createCompanyDTO) {
+        log.info("📢 기업 등록 요청: {}", createCompanyDTO);
+
+        if (createCompanyDTO.getName() == null || createCompanyDTO.getRegistrationNumber() == null || createCompanyDTO.getRepresentativeName() == null) {
+            return ResponseEntity.badRequest().body(null);
+        }
+
+        Company savedCompany = companyService.createCompany(createCompanyDTO);
+        log.info("✅ 기업 등록 완료: {}", savedCompany);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(CreateCompanyDTO.from(savedCompany));
     }
 
-    // Read - All
-    @Operation(summary = "기업 목록 조회", description = "등록된 모든 기업 정보를 조회합니다.")
+    // ✅ 모든 기업 정보 조회
     @GetMapping
-    public ResponseEntity<List<Company>> getAllCompanies() {
-        log.info("Fetching all companies"); // 로그 나중에 삭제
-        List<Company> companies = companyService.getAllCompanies();
+    public ResponseEntity<List<CreateCompanyDTO>> getAllCompanies() {
+        log.info("📢 모든 기업 정보 조회 요청");
+
+        List<CreateCompanyDTO> companies = companyService.getAllCompanies()
+                .stream()
+                .map(CreateCompanyDTO::from)
+                .collect(Collectors.toList());
+
         return ResponseEntity.ok(companies);
     }
 
-    // Read - By ID
-    @Operation(summary = "기업 조회", description = "기업 ID로 특정 기업 정보를 조회합니다.")
+    // ✅ 특정 기업 정보 조회 (companyId 기준)
     @GetMapping("/{companyId}")
-    public ResponseEntity<Company> getCompanyById(@PathVariable Long companyId) {
-        log.info("Fetching company with ID: {}", companyId); // 로그 나중에 삭제
-        return companyService.getCompanyById(companyId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<CreateCompanyDTO> getCompanyById(@PathVariable Long companyId) {
+        log.info("📢 기업 ID 조회 요청: companyId={}", companyId);
+
+        Company company = companyService.getCompanyById(companyId)
+                .orElseThrow(() -> new IllegalArgumentException("❌ 해당 기업을 찾을 수 없습니다. companyId=" + companyId));
+
+        return ResponseEntity.ok(CreateCompanyDTO.from(company));
     }
 
-    // Update
-    @Operation(summary = "기업 수정", description = "기업 ID를 기반으로 기업 정보를 수정합니다.")
-    @PutMapping("/{companyId}")
-    public ResponseEntity<Company> updateCompany(@PathVariable Long companyId, @RequestBody Company updatedCompany) {
-        log.info("Updating company with ID: {}", companyId); // 로그 나중에 삭제
-        try {
-            Company company = companyService.updateCompany(companyId, updatedCompany);
-            return ResponseEntity.ok(company);
-        } catch (IllegalArgumentException e) {
-            log.error("Error updating company with ID: {}", companyId, e); // 로그 나중에 삭제
-            return ResponseEntity.notFound().build();
+    // ✅ 특정 유저의 회사 정보 조회
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<CreateCompanyDTO> getCompanyByUserId(@PathVariable Long userId) {
+        log.info("📢 유저 ID로 기업 정보 조회 요청: userId={}", userId);
+
+        Users user = userService.getUserById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("❌ 해당 유저를 찾을 수 없습니다. userId=" + userId));
+
+        if (user.getCompany() == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
+
+        return ResponseEntity.ok(CreateCompanyDTO.from(user.getCompany()));
     }
 
-    // Delete
-    @Operation(summary = "기업 삭제", description = "기업 ID를 기반으로 기업 정보를 삭제합니다.")
+    // ✅ 기업 정보 수정
+    @PutMapping("/{companyId}")
+    public ResponseEntity<CreateCompanyDTO> updateCompany(@PathVariable Long companyId, @RequestBody CreateCompanyDTO updatedCompanyDTO) {
+        log.info("📢 기업 정보 수정 요청: companyId={}, data={}", companyId, updatedCompanyDTO);
+
+        Company updatedCompany = Company.builder()
+                .name(updatedCompanyDTO.getName())
+                .registrationNumber(updatedCompanyDTO.getRegistrationNumber())
+                .updatedAt(updatedCompanyDTO.getUpdatedAt())
+                .representativeName(updatedCompanyDTO.getRepresentativeName())
+                .build();
+
+        Company savedCompany = companyService.updateCompany(companyId, updatedCompany);
+        return ResponseEntity.ok(CreateCompanyDTO.from(savedCompany));
+    }
+
+    // ✅ 기업 정보 삭제
     @DeleteMapping("/{companyId}")
-    public ResponseEntity<Void> deleteCompany(@PathVariable Long companyId) {
-        log.info("Deleting company with ID: {}", companyId); // 로그 나중에 삭제
+    public ResponseEntity<String> deleteCompany(@PathVariable Long companyId) {
+        log.info("📢 기업 삭제 요청: companyId={}", companyId);
         companyService.deleteCompany(companyId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok("✅ 기업 삭제 완료");
     }
 }
