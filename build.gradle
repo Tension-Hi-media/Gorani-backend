@@ -36,7 +36,6 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.boot:spring-boot-starter-logging' // 기본 로깅
 
 	// JWT (토큰) 라이브러리
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
