@@ -14,7 +14,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @Slf4j
-@RequestMapping("/api/v1/auth") // 예시로 /api/auth prefix
+@RequestMapping("/api/v1/auth") // 예시로 /api/auth prefix###
 public class AuthController {
 
     private final AuthService authService;

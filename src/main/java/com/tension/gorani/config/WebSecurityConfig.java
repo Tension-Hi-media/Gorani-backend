@@ -37,7 +37,7 @@ public class WebSecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/","/index.html", "/static/**", "/v3/api-docs/**", "/swagger-ui/**", "/login/**","/api/v1/auth/**", "/auth/callback", "/swagger-ui/**", "/api/translation/**", "/api/v1/glossary/**","/api/v1/company/**").permitAll();
+                    auth.requestMatchers("/","/index.html", "/static/**", "/v3/api-docs/**", "/swagger-ui/**","/api/v1/auth/**", "/auth/callback", "/swagger-ui/**", "/api/translation/**", "/api/v1/glossary/**","/api/v1/company/**").permitAll();
                     auth.requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll();
                     auth.anyRequest().authenticated();
                 })
@@ -50,7 +50,6 @@ public class WebSecurityConfig {
                 .addFilterBefore(new JwtAuthorizationFilter(jwtTokenProvider, userDetailsService), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
-
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
