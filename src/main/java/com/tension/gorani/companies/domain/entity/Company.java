@@ -1,11 +1,9 @@
 package com.tension.gorani.companies.domain.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.tension.gorani.users.domain.entity.Users;
 import jakarta.persistence.*;
 import lombok.*;
-import net.minidev.json.annotate.JsonIgnore;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
@@ -38,6 +36,7 @@ public class Company {
     @Column(name = "representative_name")
     private String representativeName;    // 대표 이름
 
+    @JsonBackReference // ✅ 유저 리스트에서 무한 참조 방지
     @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Users> users = new LinkedHashSet<>();
 
@@ -51,4 +50,5 @@ public class Company {
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
 }
