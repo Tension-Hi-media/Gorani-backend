@@ -1,5 +1,6 @@
 package com.tension.gorani.companies.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.tension.gorani.users.domain.entity.Users;
 import jakarta.persistence.*;
 import lombok.*;
@@ -12,9 +13,9 @@ import java.util.Set;
 @AllArgsConstructor
 @Getter
 @Setter
-@Builder
+@Builder(toBuilder = true)
 @Entity
-@Table(name = "Companies")
+@Table(name = "companies")
 public class Company {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,12 +28,27 @@ public class Company {
     private String registrationNumber;  // 사업자 등록번호
 
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();  // 생성일
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt = LocalDateTime.now();  // 수정일
+    private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "company")
+    @Column(name = "representative_name")
+    private String representativeName;    // 대표 이름
+
+    @JsonBackReference // ✅ 유저 리스트에서 무한 참조 방지
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Users> users = new LinkedHashSet<>();
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 
 }
